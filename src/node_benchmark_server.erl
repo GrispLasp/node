@@ -69,15 +69,17 @@ handle_info({benchmark_meteo_task}, State) ->
 				end, NodesWithoutMe),
         node_generic_tasks_functions_benchmark:meteorological_statistics_grisplasp(SampleCount,SampleInterval);
       cloudlasp ->
-				logger:log(notice, "starting cloud lasp task ~n"),
-        Nodes = nodes(),
-        ConnectedBoard =  lists:delete(node(),Nodes),
-        node_generic_tasks_functions_benchmark:meteorological_statistics_cloudlasp(ConnectedBoard,10);
+				logger:log(notice, "starting meteo cloud lasp task ~n"),
+        node_generic_tasks_functions_benchmark:meteorological_statistics_cloudlasp(10);
       xcloudlasp ->
         node_generic_tasks_functions_benchmark:meteorological_statistics_xcloudlasp(SampleCount,SampleInterval)
       end
    end }),
-  node_generic_tasks_worker:start_task(tasknav),
+  RunningTask = node_generic_tasks_worker:start_task(tasknav),
+	Tuple = element(4,RunningTask),
+	Pid = element(1,Tuple),
+	register(connector,Pid),
+	logger:log(notice,"Found Pid by tuple is ~p ~n",[Pid]),
   {noreply, State};
 
 handle_info(Msg, State) ->
