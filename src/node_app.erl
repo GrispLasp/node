@@ -52,7 +52,7 @@ start(_StartType, _StartArgs) ->
     % add_measurements(),
 
     LEDs = [1, 2],
-    [grisp_led:flash(L, aqua, 500) || L <- LEDs],
+  %  [grisp_led:flash(L, aqua, 500) || L <- LEDs],
 
     PeerConfig = lasp_partisan_peer_service:manager(),
     logger:log(notice, "The manager used is ~p ~n", [PeerConfig]),
