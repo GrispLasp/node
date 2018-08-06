@@ -76,10 +76,12 @@ end).
 %%====================================================================
 
 
--define(ALL,     lists:seq(1,2) ).
--define(ALEX,     lists:seq(1,6,1) ).
--define(DAN,      lists:seq(1,2,3) ).
+-define(ALL,     lists:seq(1,12) ).
+-define(DAN,      lists:seq(1,3,1) ).
+-define(ALEX,     lists:seq(4,9,1) ).
 -define(IGOR,   lists:seq(10,12,1) ).
+% NEVER FORGET THIS EPIC MACRO :
+% -define(DAN,      lists:seq(1,2,3) ).
 
 % -define(BOARDS(Name),   [ list_to_atom(lists:flatten(unicode:characters_to_list(["node@my_grisp_board", "_", integer_to_list(X)], utf8))) || X <- Name ] ).
 -define(BOARDS(Name),   [ list_to_atom(unicode:characters_to_list(["node@my_grisp_board", "_", integer_to_list(X)], utf8)) || X <- Name ] ).

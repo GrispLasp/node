@@ -349,7 +349,7 @@ diagnose() ->
     % and are stored directly on the process heap. They are copied
     % when the process is garbage-collected and when they are sent as a message.
     % They do not require any special handling by the garbage collector.
-    
+
     % garbage_collect(self(),[{type, 'major'}]),
     % instrument:allocations().
     % instrument:allocations(#{ histogram_start => 128, histogram_width => 15 }).
@@ -372,8 +372,9 @@ diagnose() ->
     % garbage_collect(self(),[{type, 'major'}]).
     % recon_alloc:memory(usage).
     % instrument:carriers(#{ histogram_start => 512, histogram_width => 8, allocator_types => [eheap_alloc] }).
-    ok.{ok, S} = lasp:query({<<"states">>,state_orset}).
-    L = sets:to_list(S).
+    % ok.{ok, S} = lasp:query({<<"states">>,state_orset}).
+    % L = sets:to_list(S).
+    ok.
 gc() ->
     % TODO : compare fragmentation before and after
     % ok = print_alloc(),
