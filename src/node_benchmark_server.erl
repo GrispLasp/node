@@ -70,7 +70,7 @@ handle_info({benchmark_meteo_task}, State) ->
       cloudlasp ->
         Nodes = nodes(),
         ConnectedBoard =  lists:delete(node(),Nodes),
-        node_generic_tasks_functions_benchmark:meteorological_statistics_cloudlasp(ConnectedBoard,Time);
+        node_generic_tasks_functions_benchmark:meteorological_statistics_cloudlasp(ConnectedBoard,10);
       xcloudlasp ->
         node_generic_tasks_functions_benchmark:meteorological_statistics_xcloudlasp(SampleCount,SampleInterval)
       end
@@ -93,4 +93,3 @@ code_change(_OldVsn, S, _Extra) -> {ok, S}.
 %%====================================================================
 %% Internal functions
 %%====================================================================
-liste
