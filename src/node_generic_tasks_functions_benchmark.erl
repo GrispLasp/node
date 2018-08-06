@@ -137,20 +137,25 @@ meteorological_statistics_grisplasp(LoopCount, SampleCount, SampleInterval) ->
 
 % ==> Send Aggregated data to the AWS Server. The server will do the computation and replication with Lasp on cloud.
 % TODO: untested
-meteorological_statistics_cloudlasp(NodeList, Count) ->
+meteorological_statistics_cloudlasp(Count) ->
+  Self = self(),
+  logger:log(notice,"Correct Pid is ~p ~n",[Self]),
   Server = node(),
-  logger:log(notice, "Starting meteo task cloudlasp"),
-  lists:foreach(fun(Node) -> {datastream,Node} ! {Node,server_up} end,NodeList),
-  logger:log(notice, "Server started meteorological task"),
+  logger:log(notice,"Task is waiting for clients to send data ~n"),
+  receive
+    {Node,connect} -> logger:log(notice,"Received connection from ~p ~n",[Node]);
+    Msg -> logger:log(notice,"Wrong message received ~n")
+  end,
+  logger:log(notice, "Starting meteo task cloudlasp for node: ~p ~n",[Node]),
+  %logger:log(notice, "Server started meteorological task"),
   State = maps:new(),
   State1 = maps:put(press, [], State),
   State2 = maps:put(temp, [], State1),
   State3 = maps:put(time, [], State2),
-  lists:foreach(fun(Node) ->
-    Id = spawn(node_generic_tasks_functions_benchmark,server_loop,[Node,Count,State3]),
-    register(Node,Id)
-  end,
-        NodeList).
+  Id = spawn(node_generic_tasks_functions_benchmark,server_loop,[Node,Count,State3]),
+  register(Node,Id),
+  {datastream,Node} ! {Node,server_up},
+  meteorological_statistics_cloudlasp(Count).
 
 
 % ==> "Flood" raw data to the AWS server. The server will do the computation, aggregation and replication with Lasp on cloud.
