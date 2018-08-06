@@ -72,7 +72,7 @@ handle_info({benchmark_meteo_task, LoopCount}, State) ->
         node_generic_tasks_functions_benchmark:meteorological_statistics_xcloudlasp(SampleCount,SampleInterval)
       end
    end }),
-  %node_generic_tasks_worker:start_task(tasknav),
+  node_generic_tasks_worker:start_task(tasknav),
   {noreply, State};
 
 handle_info(Msg, State) ->
