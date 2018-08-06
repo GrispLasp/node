@@ -1,0 +1,21 @@
+So here is the file you have all been waiting for: the explanation of how the fuck do those
+sensors work!!!
+
+Here is the issue, we want to modify the code in the grisp application since thats where you can find the drivers(grisp/src).
+But since grisp is loaded as a dependency the code loaded by default is the one you can find on the following
+github link https://github.com/grisp/grisp.
+
+To be able to override this grisp application and write our own, what you can do is create a "_checkouts" dir
+at the root level of the application and put a fork of the grisp application in it, you'll need to build once
+but then anytime you modify an erlang driver you won't need to rebuild you'll just have to redploy the app.
+
+I have created a "sensor" dir in the git with all the modified drivers.
+To test if it works try the pmod_gyro.erl put it in grisp/src instead of the one already there
+plug in the gyro sensor on the 12 pin spi1.
+Then run:
+application:set_env(grisp, devices, [{spi1, pmod_gyro}]).
+application:set_env(grisp, devices, [{spi2, pmod_als}]).
+grisp_devices:setup().
+pmod_gyro:read_gyro().
+pmod_gyro:read_temp().
+And it should magically work

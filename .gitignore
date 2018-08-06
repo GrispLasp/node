@@ -8,3 +8,7 @@ ebin
 rel/example_project
 .concrete/DEV_MODE
 .rebar
+log/
+_build/
+_elixir_build/
+_grisp/

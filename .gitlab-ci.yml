@@ -1,0 +1,53 @@
+image: erlang:20.2
+
+stages:
+  - build
+  - test
+  - deploy
+
+test:
+  stage: build
+  script:
+    - ../deps/rebar3 compile
+  cache:
+    paths:
+    - _build/
+# variables:
+  # POSTGRES_DB: sample-test
+  # DATABASE_URL: "postgresql://postgres@postgres:5432/sample-test"
+
+# before_script:
+#   - apt-get update -y
+#   - apt-get install default-jre postgresql-client -y
+#   - wget https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein
+#   - chmod a+x lein
+#   - export LEIN_ROOT=1
+#   - PATH=$PATH:.
+#   - lein deps
+#   - lein migratus migrate
+# # Setup
+# source "$HOME/.kerl/installs/17.3/activate"
+# gitlabdir=$(basename "$(pwd)")
+# appdir=$(cat src/*.app.src | tr ',' '\n' | sed '2q;d' | tr -d ' ' | tr -d '\n')
+#
+# # Rename directory
+# cd ..
+# rm -rf "$appdir"
+# mv "$gitlabdir" "$appdir"
+# cd "$appdir"
+#
+# # Run tests
+# make dialyze
+# make tests
+#
+# # Coverage
+# ls -rt $(find ./logs -name "cover.html") | tail -n 1 | xargs cat | grep -F 'Total' | awk '{gsub("<[^>]*>", "")}1'
+#
+# # Cleanup
+# cd ..
+# mv "$appdir" "$gitlabdir"
+# cd "$gitlabdir"
+#
+# test:
+#   script:
+#     - lein test

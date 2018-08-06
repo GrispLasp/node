@@ -1,0 +1,21 @@
+node_generic_tasks_server:add_task({task1, all, fun () -> 200+200 end }).
+node_generic_tasks_server:add_task({task2, all, fun () -> 4+4 end }).
+node_generic_tasks_server:get_all_tasks().
+node_generic_tasks_server:remove_all_tasks().
+node_generic_tasks_server:remove_task(task1).
+lasp:query({<<"tasks">>, state_orset}).
+node_generic_tasks_worker:find_and_start_task().
+node_generic_tasks_worker:start_all_tasks().
+
+
+node_generic_tasks_server:add_task({task1, all, fun () -> node_generic_tasks_functions:temp_sensor({0, []}, 3000) end }).
+node_generic_tasks_server:get_all_tasks().
+node_generic_tasks_worker:start_task(task1).
+
+
+
+node_generic_tasks_server:add_task({task1, [generic_node_1@GrispAdhoc], fun () -> node_generic_tasks_functions:sonar_sensor(in, generic_node_2@GrispAdhoc) end }).
+node_generic_tasks_worker:start_task(task1).
+
+node_generic_tasks_server:add_task({task2, [generic_node_2@GrispAdhoc], fun () -> node_generic_tasks_functions:sonar_sensor(out, generic_node_1@GrispAdhoc) end }).
+node_generic_tasks_worker:start_task(task2).

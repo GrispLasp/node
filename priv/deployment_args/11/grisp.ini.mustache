@@ -1,0 +1,10 @@
+[boot]
+image_path = /media/mmcsd-0-0/{{release_name}}/erts-{{erts_vsn}}/bin/beam.bin
+
+[erlang]
+args = erl.rtems -- +MHas aobf +MMmcs 5 +MHlmbcs 5240 -mode embedded -home . -pa . -root {{release_name}} -config {{release_name}}/releases/{{release_version}}/sys.config -boot {{release_name}}/releases/{{release_version}}/{{release_name}} -internal_epmd epmd_sup -kernel inetrc "./erl_inetrc" -sname {{release_name}} -setcookie MyCookie
+
+[network]
+ip_self=169.254.16.11
+wlan=enable
+hostname=my_grisp_board_11
