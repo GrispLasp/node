@@ -43,14 +43,6 @@ init({}) ->
     % self() ! {full_ping},
     {ok, []}.
 
-handle_call({ping, Number, Timer}, _From,
-	    CurrentList) ->
-    logger:log(info, "=== Current list of Node pinged correctly "
-	      "(~p) ===~n",
-	      [CurrentList]),
-    PingedNodes = ping(CurrentList, Number, partial),
-    self() ! {timer, Timer},
-    {reply, {ok, PingedNodes}, PingedNodes};
 handle_call({terminate}, _From, CurrentList) ->
     logger:log(info, "=== Ping server terminates with Current "
 	      "list of Node pinged correctly (~p) ===~n",
@@ -62,7 +54,7 @@ handle_call(_Message, _From, CurrentList) ->
 handle_info({full_ping}, CurrentList) ->
     logger:log(notice, "=== Starting a full ping ===~n"),
     T1 = os:timestamp(),
-    PingedNodes = ping(CurrentList, 1, full),
+    PingedNodes = ping(),
     T2 = os:timestamp(),
     Time = timer:now_diff(T2, T1),
     logger:log(info, "=== Time to do a full ping ~ps ===~n",
@@ -74,7 +66,7 @@ handle_info(timeout, CurrentList) ->
     logger:log(notice, "=== Timeout of full ping, restarting "
 	      "after 90s ===~n"),
     T1 = os:timestamp(),
-    PingedNodes = ping(CurrentList, 1, full),
+    PingedNodes = ping(),
     T2 = os:timestamp(),
     Time = timer:now_diff(T2, T1),
     logger:log(info, "=== Time to do a full ping ~ps ===~n",
@@ -105,34 +97,30 @@ code_change(_OldVersion, CurrentList, _Extra) ->
 %% but ?BOARDS(X) will return a list of hostnames
 %% with any other supplied sequence
 %% @end
-ping(PingList, N, Type) when N > 0 ->
-    % List = [node@my_grisp_board_1,node@my_grisp_board_2,node@my_grisp_board_3,node@my_grisp_board_4,node@my_grisp_board_5,node@my_grisp_board_6,node@my_grisp_board_7,node@my_grisp_board_8,node@my_grisp_board_9,node@my_grisp_board_10,node@my_grisp_board_11,node@my_grisp_board_12],
-    % List = [node@my_grisp_board_10,node@my_grisp_board_11,node@my_grisp_board_12],
-    % List = ?BOARDS(?IGOR),
+ping() ->
 	Remotes = maps:fold(fun
 		(K, V, AccIn) when is_list(V) ->
 			AccIn ++ V
 	end, [], node_config:get(remote_hosts, #{})),
     % List = (?BOARDS((?IGOR))) ++ ['nodews@Laymer-3'],
-    % List = (?BOARDS((?DAN))) ++ Remotes,
+    List =  Remotes,
 		% List = ['node@GrispAdhoc', 'node2@GrispAdhoc'],
-		List = (?BOARDS((?ALL))),
+		% List = (?BOARDS((?ALL))),
     % List = [generic_node_1@GrispAdhoc,generic_node_2@GrispAdhoc],
     ListWithoutSelf = lists:delete(node(), List),
-    Ping = fun (X) -> net_adm:ping(X) == pong end,
-    case Type of
-      full -> ToPing = ListWithoutSelf;
-      partial -> ToPing = PingList;
-      _ -> ToPing = []
-    end,
-    ListToJoin = lists:filter(Ping, ToPing),
-    if Type == full -> ping(ListToJoin, 0, full);
-       true ->
-	   % grisp_led:flash(1, blue, 500),
-	   ping(ListToJoin, N - 1, partial)
-    end;
-ping(PingList, 0, _Type) ->
-    % grisp_led:color(1, green),
-    Join = fun (X) -> lasp_peer_service:join(X) end,
-    lists:foreach(Join, PingList),
-    PingList.
+		lists:map(fun (Node) ->
+			case net_adm:ping(Node) of
+				pong ->
+					IsARemote = lists:member(Node, Remotes),
+					if IsARemote == true ->
+						logger:log(info, "=== Node ~p is an aws server", [Node]),
+						Node;
+					true ->
+						logger:log(info, "=== Attempting to join the node ~p with lasp", [Node]),
+						lasp_peer_service:join(Node),
+						Node
+					end;
+				pang ->
+					logger:log(notice, "=== Node ~p is unreachable", [Node])
+			end
+		end, List).
