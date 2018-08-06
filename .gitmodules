@@ -1,0 +1,4 @@
+[submodule "_checkouts/grisp"]
+	url = https://github.com/GrispLasp/grisp.git
+[submodule "_checkouts/partisan"]
+	url = https://github.com/GrispLasp/partisan.git
