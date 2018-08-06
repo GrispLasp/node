@@ -68,6 +68,7 @@ handle_info({benchmark_meteo_task}, State) ->
 				end, NodesWithoutMe),
         node_generic_tasks_functions_benchmark:meteorological_statistics_grisplasp(SampleCount,SampleInterval);
       cloudlasp ->
+				logger:log(notice, "starting cloud lasp task ~n"),
         Nodes = nodes(),
         ConnectedBoard =  lists:delete(node(),Nodes),
         node_generic_tasks_functions_benchmark:meteorological_statistics_cloudlasp(ConnectedBoard,10);
