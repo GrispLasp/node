@@ -198,11 +198,11 @@ meteorological_statistics_xcloudlasp(SampleCount, SampleInterval) ->
                   logger:log(notice, "lasp set ~p at the end is ~p", [Node,NewV]);
     true ->
             receive
-              Data -> {Board,Temp,Press} = Data;
+              Data -> {Board,Temp,Press,T} = Data;
               true -> nothing
             end,
-            NewMeasures = #{press => maps:get(press, Measures) ++ [Pr],
-            temp => maps:get(temp, Measures) ++ [Tmp],
+            NewMeasures = #{press => maps:get(press, Measures) ++ [Press],
+            temp => maps:get(temp, Measures) ++ [Temp],
             time => maps:get(time, Measures) ++ [T]},
             NewCount = Count - 1,
             server_loop(Node,NewCount,NewMeasures)
