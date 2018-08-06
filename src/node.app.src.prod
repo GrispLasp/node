@@ -1,0 +1,27 @@
+{application, node, [
+    {description, "A GRiSP application"},
+    {vsn, "0.1.0"},
+    {registered, []},
+    {mod, {node_app, []}},
+    {applications, [
+        kernel,
+        stdlib,
+        sasl
+        % os_mon
+        % grisp,
+        % os_mon,
+        % sasl,
+        % elixir,
+        % gen_stage,
+        % flow,
+        % numerix
+        % webserver,
+        % faker
+    ]},
+    {env,[]},
+    {modules, []},
+
+    {maintainers, []},
+    {licenses, ["Apache 2.0"]},
+    {links, []}
+]}.
