@@ -137,51 +137,20 @@ meteorological_statistics_grisplasp(LoopCount, SampleCount, SampleInterval) ->
 
 % ==> Send Aggregated data to the AWS Server. The server will do the computation and replication with Lasp on cloud.
 % TODO: untested
-meteorological_statistics_cloudlasp(SampleCount, SampleInterval) ->
-
-  logger:log(notice, "Starting Meteo statistics task benchmarking for aggregated data on lasp on cloud"),
-
-  % Must check if module is available
-  {pmod_nav, Pid, _Ref} = node_util:get_nav(),
-  % meteo = shell:rd(meteo, {press = [], temp = []}),
-  % State = #{press => [], temp => [], time => []},
+meteorological_statistics_cloudlasp(NodeList, Count) ->
+  Server = node(),
+  logger:log(notice, "Starting meteo task cloudlasp"),
+  lists:foreach(fun(Node) -> {datastream,Node} ! {Node,server_up} end,NodeList),
+  logger:log(notice, "Server started meteorological task"),
   State = maps:new(),
   State1 = maps:put(press, [], State),
   State2 = maps:put(temp, [], State1),
   State3 = maps:put(time, [], State2),
-
-  FoldFun = fun
-      (Elem, AccIn) when is_integer(Elem) andalso is_map(AccIn) ->
-          timer:sleep(SampleInterval),
-          T = node_stream_worker:maybe_get_time(),
-          % T = calendar:local_time(),
-          [Pr, Tmp] = gen_server:call(Pid, {read, alt, [press_out, temp_out], #{}}),
-          % [Pr, Tmp] = [1000.234, 29.55555],
-          #{press => maps:get(press, AccIn) ++ [Pr],
-          temp => maps:get(temp, AccIn) ++ [Tmp],
-          time => maps:get(time, AccIn) ++ [T]}
+  lists:foreach(fun(Node) ->
+    Id = spawn(node_generic_tasks_functions_benchmark,server_loop,[Node,Count,State3]),
+    register(Node,Id)
   end,
-
-  M = lists:foldl(FoldFun, State3, lists:seq(1, SampleCount)),
-
-  % Do computation here or on aws server?
-  %
-  % T1Computation = erlang:monotonic_time(millisecond),
-  %
-  % [Pressures, Temperatures, Epochs] = maps:values(M),
-  % Result = #{measures => lists:zip3(Epochs, Pressures, Temperatures),
-  %     pmean => 'Elixir.Numerix.Statistics':mean(Pressures),
-  %     pvar => 'Elixir.Numerix.Statistics':variance(Pressures),
-  %     tmean => 'Elixir.Numerix.Statistics':mean(Temperatures),
-  %     tvar => 'Elixir.Numerix.Statistics':variance(Temperatures),
-  %     cov => 'Elixir.Numerix.Statistics':covariance(Pressures, Temperatures)},
-  %
-  % T2Computation = erlang:monotonic_time(millisecond),
-
-  AWS_Server = maps:get(main_aws_server, node_config:get(remote_hosts)),
-
-  % Round trip time and computation time
-  {ok, {RTT, CT}} = rpc:call(AWS_Server, node_client, receive_meteo_data, [{node(), maps:values(M)}]).
+        NodeList).
 
 
 % ==> "Flood" raw data to the AWS server. The server will do the computation, aggregation and replication with Lasp on cloud.
@@ -214,3 +183,28 @@ meteorological_statistics_xcloudlasp(SampleCount, SampleInterval) ->
   M = lists:foldl(FoldFun, State3, lists:seq(1, SampleCount)).
 
   %TODO: Wait for benchmark results from the remote server
+
+  server_loop(Node,Count,Measures) ->
+    if
+    Count == 0 ->
+                  [Pressures, Temperatures, Epochs] = maps:values(Measures),
+                  Result = #{measures => lists:zip3(Epochs, Pressures, Temperatures),
+                  pmean => 'Elixir.Numerix.Statistics':mean(Pressures),
+                  pvar => 'Elixir.Numerix.Statistics':variance(Pressures),
+                  tmean => 'Elixir.Numerix.Statistics':mean(Temperatures),
+                  tvar => 'Elixir.Numerix.Statistics':variance(Temperatures),
+                  cov => 'Elixir.Numerix.Statistics':covariance(Pressures, Temperatures)},
+                  {ok, {NewId, NewT, NewM, NewV}} = lasp:update(Node, {add, Result}, self()),
+                  logger:log(notice, "lasp set ~p at the end is ~p", [Node,NewV]);
+    true ->
+            receive
+              Data -> {Board,Temp,Press} = Data;
+              true -> nothing
+            end,
+            NewMeasures = #{press => maps:get(press, Measures) ++ [Pr],
+            temp => maps:get(temp, Measures) ++ [Tmp],
+            time => maps:get(time, Measures) ++ [T]},
+            NewCount = Count - 1,
+            server_loop(Node,NewCount,NewMeasures)
+
+  end.
