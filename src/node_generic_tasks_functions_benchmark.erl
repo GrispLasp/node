@@ -199,7 +199,7 @@ meteorological_statistics_xcloudlasp(SampleCount, SampleInterval) ->
     true ->
             receive
               Data -> {Board,Temp,Press,T} = Data;
-              true -> nothing
+              true -> Board = error, Temp = error, T = error
             end,
             NewMeasures = #{press => maps:get(press, Measures) ++ [Press],
             temp => maps:get(temp, Measures) ++ [Temp],
