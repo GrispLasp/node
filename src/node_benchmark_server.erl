@@ -68,12 +68,14 @@ handle_info({benchmark_meteo_task}, State) ->
 				end, NodesWithoutMe),
         node_generic_tasks_functions_benchmark:meteorological_statistics_grisplasp(SampleCount,SampleInterval);
       cloudlasp ->
-        node_generic_tasks_functions_benchmark:meteorological_statistics_cloudlasp(SampleCount,SampleInterval);
+        Nodes = nodes(),
+        ConnectedBoard =  lists:delete(node(),Nodes),
+        node_generic_tasks_functions_benchmark:meteorological_statistics_cloudlasp(ConnectedBoard,Time);
       xcloudlasp ->
         node_generic_tasks_functions_benchmark:meteorological_statistics_xcloudlasp(SampleCount,SampleInterval)
       end
    end }),
-  node_generic_tasks_worker:start_task(tasknav),
+  %node_generic_tasks_worker:start_task(tasknav),
   {noreply, State};
 
 handle_info(Msg, State) ->
@@ -91,3 +93,4 @@ code_change(_OldVsn, S, _Extra) -> {ok, S}.
 %%====================================================================
 %% Internal functions
 %%====================================================================
+liste
