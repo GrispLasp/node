@@ -146,15 +146,13 @@ meteorological_statistics_cloudlasp(Count) ->
     {Node,connect} -> logger:log(notice,"Received connection from ~p ~n",[Node]);
     Msg -> Node = error,logger:log(notice,"Wrong message received ~n"),Pid = 0
   end,
-  %logger:log(notice, "Starting meteo task cloudlasp for node: ~p ~n",[Node]),
-  %logger:log(notice, "Server started meteorological task"),
   State = maps:new(),
   State1 = maps:put(press, [], State),
   State2 = maps:put(temp, [], State1),
   State3 = maps:put(time, [], State2),
   Id = spawn(node_generic_tasks_functions_benchmark,server_loop,[Node,Count,State3]),
   register(server,Id),
-  {Pid,Node} ! {server_up},
+  {datastream,'lol@myself'} ! {server_up},
   logger:log(notice,"sent ack"),
   meteorological_statistics_cloudlasp(Count).
 
@@ -204,7 +202,7 @@ meteorological_statistics_xcloudlasp(SampleCount, SampleInterval) ->
                   logger:log(notice, "lasp set ~p at the end is ~p", [Node,NewV]);
     true ->
             receive
-              Data -> {Board,Temp,Press,T} = Data;
+              Data -> {Board,Temp,Press,T} = Data,logger:log(notice,"Data received by the server");
               true -> Press = error, Temp = error, T = error
             end,
             NewMeasures = #{press => maps:get(press, Measures) ++ [Press],

@@ -1,6 +1,6 @@
 -module(datastreamer).
 
--export([send_data/1,datastream/2,start_datastreamer/1]).
+-export([send_data/1,datastream/1,start_datastreamer/1]).
 
 start_datastreamer(Server) ->
   Output = register(datastream,spawn(datastreamer,send_data,[Server])),
@@ -11,9 +11,9 @@ send_data(Server) ->
   receive
     {server_up} -> io:format("Connection accepted by the server")
   end,
-  datastream(ServerPid,Server).
+  datastream(Server).
 
-datastream(ServerPid,Server) ->
+datastream(Server) ->
   Temp = rand:uniform()*30,
   Press = rand:uniform(),
   Time = os:timestamp(),
