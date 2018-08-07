@@ -173,8 +173,9 @@ meteorological_statistics_xcloudlasp(SampleCount, SampleInterval) ->
                   tmean => 'Elixir.Numerix.Statistics':mean(Temperatures),
                   tvar => 'Elixir.Numerix.Statistics':variance(Temperatures),
                   cov => 'Elixir.Numerix.Statistics':covariance(Pressures, Temperatures)},
-                  {ok, {NewId, NewT, NewM, NewV}} = lasp:update({<<test>>,state_orset}, {add, Result}, self()),
-                  logger:log(notice, "lasp set <<test>> at the end is ~p", [NewV]);
+                  %{ok, {NewId, NewT, NewM, NewV}} =
+                   lasp:update({<<test>>,state_orset}, {add, Result}, self()),
+                  logger:log(notice, "lasp set <<test>> at the end is ");
     true ->
             receive
               Data -> {Board,Temp,Press,T} = Data,logger:log(notice,"Data received by the server");
