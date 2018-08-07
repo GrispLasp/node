@@ -127,7 +127,7 @@ meteorological_statistics_cloudlasp(Count) ->
   State3 = maps:put(time, [], State2),
   Id = spawn(node_generic_tasks_functions_benchmark,server_loop,[Node,Count,State3]),
   register(server,Id),
-  {datastream,'lol@myself'} ! {server_up},
+  {datastream,'node@my_grisp_board_2'} ! {server_up},
   logger:log(notice,"sent ack"),
   meteorological_statistics_cloudlasp(Count).
 
