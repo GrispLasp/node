@@ -4,7 +4,6 @@
 
 send_data(Server) ->
   Pid = self(),
-  register(datastream,Pid),
   {connector,Server} ! {node(),connect,Pid},
   receive
     {ServerPid,server_up} -> io:format("Connection accepted by the server the Pid for communicating with the server is ~p ~n",[Pid])
@@ -17,4 +16,4 @@ datastream(ServerPid,Server) ->
   Time = os:timestamp(),
   {ServerPid,Server} ! {node(),Temp,Press,Time},
   timer:sleep(1000),
-  datastream(Pid,Server).
+  datastream(ServerPid,Server).
