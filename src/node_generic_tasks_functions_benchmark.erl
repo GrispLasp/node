@@ -146,7 +146,7 @@ meteorological_statistics_cloudlasp(Count) ->
     {Node,connect} -> logger:log(notice,"Received connection from ~p ~n",[Node]);
     Msg -> logger:log(notice,"Wrong message received ~n")
   end,
-  logger:log(notice, "Starting meteo task cloudlasp for node: ~p ~n",[Node]),
+  %logger:log(notice, "Starting meteo task cloudlasp for node: ~p ~n",[Node]),
   %logger:log(notice, "Server started meteorological task"),
   State = maps:new(),
   State1 = maps:put(press, [], State),
