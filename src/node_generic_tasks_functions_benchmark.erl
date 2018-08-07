@@ -144,7 +144,7 @@ meteorological_statistics_cloudlasp(Count) ->
   logger:log(notice,"Task is waiting for clients to send data ~n"),
   receive
     {Node,connect} -> logger:log(notice,"Received connection from ~p ~n",[Node]);
-    Msg -> logger:log(notice,"Wrong message received ~n")
+    Msg -> Node = error,logger:log(notice,"Wrong message received ~n")
   end,
   %logger:log(notice, "Starting meteo task cloudlasp for node: ~p ~n",[Node]),
   %logger:log(notice, "Server started meteorological task"),
