@@ -51,7 +51,8 @@ start(_StartType, _StartArgs) ->
     start_primary_workers(distributed_workers),
     % add_measurements(),
 
-    logger:log(notice, "Node ~p", [node()]),
+    % logger:log(notice, "Node ~p", [node()]),
+    % logger:log(notice, "Inet getifaddrs ~p", [inet:getifaddrs()]),
     LEDs = [1, 2],
     % [grisp_led:flash(L, aqua, 500) || L <- LEDs],
 

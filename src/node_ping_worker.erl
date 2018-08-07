@@ -103,24 +103,28 @@ ping() ->
 			AccIn ++ V
 	end, [], node_config:get(remote_hosts, #{})),
     % List = (?BOARDS((?IGOR))) ++ ['nodews@Laymer-3'],
-    List =  Remotes,
+
+		List = Remotes,
+
 		% List = ['node@GrispAdhoc', 'node2@GrispAdhoc'],
 		% List = (?BOARDS((?ALL))),
     % List = [generic_node_1@GrispAdhoc,generic_node_2@GrispAdhoc],
+		% List =  (?BOARDS(?ALL)) ++ Remotes,
     ListWithoutSelf = lists:delete(node(), List),
-		lists:map(fun (Node) ->
+		lists:foldl(fun (Node, Acc) ->
 			case net_adm:ping(Node) of
 				pong ->
 					IsARemote = lists:member(Node, Remotes),
 					if IsARemote == true ->
-						logger:log(info, "=== Node ~p is an aws server", [Node]),
-						Node;
+						logger:log(notice, "=== Node ~p is an aws server", [Node]),
+						Acc ++ [Node];
 					true ->
-						logger:log(info, "=== Attempting to join the node ~p with lasp", [Node]),
+						logger:log(notice, "=== Attempting to join the node ~p with lasp", [Node]),
 						lasp_peer_service:join(Node),
-						Node
+						Acc ++ [Node]
 					end;
 				pang ->
-					logger:log(notice, "=== Node ~p is unreachable", [Node])
+					logger:log(notice, "=== Node ~p is unreachable", [Node]),
+					Acc
 			end
-		end, List).
+		end, [],  ListWithoutSelf).

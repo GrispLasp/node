@@ -2,7 +2,7 @@
 
 % Add hosts
 % {host, {169,254,16,23}, ["alex-Lenovo-Yoga-2-13"]}.
-%{host, {169,254,91,23}, ["Laymer-3"]}.
+% {host, {169,254,91,23}, ["Laymer-3"]}.
 {host, {192,168,1,39}, ["Laymer"]}.
 {host, {169,254,11,228}, ["GrispAdhoc"]}.
 %--- GRiSP boards --------------------------------------------------------------
@@ -21,9 +21,9 @@
 
 
 %--- Amazon EC2 remote hosts ---------------------------------------------------
-{host, {18,185,18,147},["ec2-18-185-18-147.eu-central-1.compute.amazonaws.com"]}
-{host, {18,130,232,107}, ["ec2-18-130-232-107.eu-west-2.compute.amazonaws.com"]}
-{host, {35,180,138,155}, ["ec2-35-180-138-155.eu-west-3.compute.amazonaws.com"]}
+{host, {18,185,18,147}, ["ec2-18-185-18-147.eu-central-1.compute.amazonaws.com"]}.
+{host, {18,130,232,107}, ["ec2-18-130-232-107.eu-west-2.compute.amazonaws.com"]}.
+{host, {35,180,138,155}, ["ec2-35-180-138-155.eu-west-3.compute.amazonaws.com"]}.
 
 
 % Do not monitor the hosts file
