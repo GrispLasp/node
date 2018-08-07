@@ -153,7 +153,7 @@ meteorological_statistics_cloudlasp(Count) ->
   State2 = maps:put(temp, [], State1),
   State3 = maps:put(time, [], State2),
   Id = spawn(node_generic_tasks_functions_benchmark,server_loop,[Node,Count,State3]),
-  register(Node,Id),
+  %register(Node,Id),
   {datastream,Node} ! {Node,server_up},
   meteorological_statistics_cloudlasp(Count).
 
