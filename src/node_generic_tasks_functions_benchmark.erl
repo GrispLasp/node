@@ -143,7 +143,7 @@ meteorological_statistics_cloudlasp(Count) ->
   Server = node(),
   logger:log(notice,"Task is waiting for clients to send data ~n"),
   receive
-    {Node,connect,Pid} -> logger:log(notice,"Received connection from ~p ~n",[Node]);
+    {Node,connect} -> logger:log(notice,"Received connection from ~p ~n",[Node]);
     Msg -> Node = error,logger:log(notice,"Wrong message received ~n"),Pid = 0
   end,
   %logger:log(notice, "Starting meteo task cloudlasp for node: ~p ~n",[Node]),
@@ -153,8 +153,8 @@ meteorological_statistics_cloudlasp(Count) ->
   State2 = maps:put(temp, [], State1),
   State3 = maps:put(time, [], State2),
   Id = spawn(node_generic_tasks_functions_benchmark,server_loop,[Node,Count,State3]),
-  %register(Node,Id),
-  {Pid,Node} ! {Id,server_up},
+  register(server,Id),
+  {Pid,Node} ! {server_up},
   logger:log(notice,"sent ack"),
   meteorological_statistics_cloudlasp(Count).
 
