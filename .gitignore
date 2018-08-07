@@ -12,3 +12,5 @@ log/
 _build/
 _elixir_build/
 _grisp/
+
+rebar3
