@@ -176,7 +176,9 @@ meteorological_statistics_xcloudlasp(SampleCount, SampleInterval) ->
                   %{ok, {NewId, NewT, NewM, NewV}} =
                    {ok, {Id, _, _, _}} = hd(node_util:declare_crdts([node()])),
                    lasp:update(Id, {add, Result}, self()),
-                  logger:log(notice, "lasp set <<test>> at the end is ");
+                   {ok,Set} = lasp:query(Id),
+                    L = sets:to_list(Set),
+                  logger:log(notice, "lasp set <<test>> at the end is ~p",[L]);
     true ->
             receive
               Data -> {Board,Temp,Press,T} = Data,logger:log(notice,"Data received by the server");
