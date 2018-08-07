@@ -199,7 +199,8 @@ meteorological_statistics_xcloudlasp(SampleCount, SampleInterval) ->
                   tvar => 'Elixir.Numerix.Statistics':variance(Temperatures),
                   cov => 'Elixir.Numerix.Statistics':covariance(Pressures, Temperatures)},
                   %{ok, {NewId, NewT, NewM, NewV}} =
-                   lasp:update({<<test>>,state_orset}, {add, Result}, self()),
+                   {ok, {Id, _, _, _}} = hd(node_util:declare_crdts([node()])),
+                   lasp:update(Id, {add, Result}, self()),
                   logger:log(notice, "lasp set <<test>> at the end is ");
     true ->
             receive
