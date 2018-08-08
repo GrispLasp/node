@@ -18,9 +18,9 @@ send_data(Server) ->
   datastream(Server).
 
 datastream(Server) ->
-  Temp = rand:uniform()*30,
-  Press = rand:uniform(),
-  Time = os:timestamp(),
+  {pmod_nav, Pid, _Ref} = node_util:get_nav(),
+  [Press, Temp] = gen_server:call(Pid, {read, alt, [press_out, temp_out], #{}}),
+  Time = node_stream_worker:maybe_get_time(),
   {server,Server} ! {node(),Temp,Press,Time},
   timer:sleep(1000),
   datastream(Server).

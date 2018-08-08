@@ -6,9 +6,9 @@
     {applications, [
         kernel,
         stdlib,
-        sasl
+        sasl,
         % os_mon
-        % grisp,
+         grisp
         % os_mon,
         % sasl,
         % elixir,
