@@ -65,9 +65,9 @@ handle_info({benchmark_meteo_task, LoopCount}, State) ->
         node_generic_tasks_functions_benchmark:meteorological_statistics_grisplasp(LoopCount, SampleCount, SampleInterval);
       cloudlasp ->
 				logger:log(notice, "starting meteo cloud lasp task ~n"),
-        node_generic_tasks_functions_benchmark:meteorological_statistics_cloudlasp(10);
+        node_generic_tasks_functions_benchmark:meteorological_statistics_cloudlasp(100);
       xcloudlasp ->
-        node_generic_tasks_functions_benchmark:meteorological_statistics_xcloudlasp(SampleCount,SampleInterval)
+        node_generic_tasks_functions_benchmark:meteorological_statistics_xcloudlasp(100)
       end
    end }),
   RunningTask = node_generic_tasks_worker:start_task(tasknav),
