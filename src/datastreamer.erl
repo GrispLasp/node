@@ -3,7 +3,7 @@
 -export([send_data/2,datastream/2,start_datastreamer/2]).
 
 start_datastreamer(Server,Timer) ->
-  Pid = spawn(datastreamer,send_data,[Server]),
+  Pid = spawn(datastreamer,send_data,[Server,Timer]),
   Output = register(datastream,Pid),
   io:format("Registered process as datastream is ~p ~n",[Output]).
 
