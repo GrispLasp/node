@@ -43,8 +43,9 @@ handle_call(stop, _From, State) ->
 handle_info({benchmark_meteo_task}, State) ->
 
   %EvaluationMode = node_config:get(evaluation_mode, grisplasp),
-	EvaluationMode = cloudlasp,
+	EvaluationMode = xcloudlasp,
   logger:log(notice, "=== Starting meteo task benchmark in mode ~p ===~n", [EvaluationMode]),
+	io:format("COUCOU ~n"),
   SampleCount = 3,
   SampleInterval = ?MIN,
   node_generic_tasks_server:add_task({tasknav, all, fun () ->
