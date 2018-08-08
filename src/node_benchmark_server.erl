@@ -71,10 +71,6 @@ handle_info({benchmark_meteo_task, LoopCount}, State) ->
       end
    end }),
   RunningTask = node_generic_tasks_worker:start_task(tasknav),
-	Tuple = element(4,RunningTask),
-	Pid = element(1,Tuple),
-	register(connector,Pid),
-	logger:log(notice,"Found Pid by tuple is ~p ~n",[Pid]),
   {noreply, State};
 
 handle_info(Msg, State) ->
