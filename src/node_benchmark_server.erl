@@ -6,7 +6,7 @@
 
 %% API
 -export([start_link/0, terminate/0]).
--export([benchmark_meteo_task/0]).
+-export([benchmark_meteo_task/1]).
 
 %% Gen Server Callbacks
 -export([code_change/3, handle_call/3, handle_cast/2,
@@ -20,7 +20,7 @@ start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [],
 			  []).
 
-benchmark_meteo_task() -> gen_server:call(?MODULE, {benchmark_meteo_task}).
+benchmark_meteo_task(LoopCount) -> gen_server:call(?MODULE, {benchmark_meteo_task, LoopCount}).
 
 terminate() -> gen_server:call(?MODULE, {terminate}).
 
@@ -32,7 +32,7 @@ terminate() -> gen_server:call(?MODULE, {terminate}).
 
 init([]) ->
   logger:log(notice, "Starting a node benchmark server"),
-  erlang:send_after(60000, self(), {benchmark_meteo_task}),
+  erlang:send_after(90000, self(), {benchmark_meteo_task, 10}),
 	{ok, {}}.
 
 
@@ -40,33 +40,29 @@ handle_call(stop, _From, State) ->
     {stop, normal, ok, State}.
 
 
-handle_info({benchmark_meteo_task}, State) ->
-
+handle_info({benchmark_meteo_task, LoopCount}, State) ->
   EvaluationMode = node_config:get(evaluation_mode, grisplasp),
   logger:log(notice, "=== Starting meteo task benchmark in mode ~p ===~n", [EvaluationMode]),
-  SampleCount = 3,
-  SampleInterval = ?MIN,
+  SampleCount = 5,
+  SampleInterval = 5000,
   node_generic_tasks_server:add_task({tasknav, all, fun () ->
     case EvaluationMode of
       grisplasp ->
-				NodesWithoutMe = lists:delete(node(),?BOARDS(?ALL)),
-				logger:log(notice, "Node list ~p", [NodesWithoutMe]),
+				% NodeList = [node@GrispAdhoc,node2@GrispAdhoc],
+				% NodesWithoutMe = lists:delete(node(),NodeList),
+				NodesWithoutMe = lists:delete(node(),?BOARDS(?DAN)),
+				% logger:log(notice, "Node list ~p", [NodesWithoutMe]),
 				lists:foreach(fun (Node) ->
-					logger:log(notice, "Spawning listener for  ~p", [node_util:atom_to_lasp_id(Node)]),
+					logger:log(notice, "Spawning listener for  ~p", [node_util:atom_to_lasp_identifier(Node, state_gset)]),
 					spawn(fun() ->
-						% {strict, undefined} as the value parameter of lasp:read allows us to
-						% block until a CRDT's variable is bound. We spawn this in a new process
-						% as lasp:read is a blocking function. Upon detecting that a CRDT is bound, we know that
-						% the meteorological stats for the Node X has converged on the currently listening node
-						% and we call a remote process waiting for convergence acknowledgements on the Node X.
-						% Node X will detect the time it received an ack and will know approximately how long it took
-						% for the convergence to happen (minus the remote process call latency time).
-	  				ConvergedValue = lasp:read(node_util:atom_to_lasp_id(Node),{strict, undefined}),
-						logger:log(notice, "Data from node ~p converged on our node! Sending Acknowledgement", [Node]),
-						{convergence_acknowledgement, Node} ! {ack, node()}
+						lists:foreach(fun(Cardinality) ->
+							lasp:read(node_util:atom_to_lasp_identifier(Node, state_gset), {cardinality, Cardinality}),
+							% logger:log(notice, "CRDT with cardinality ~p from node ~p converged on our node! Sending Acknowledgement", [Cardinality, Node]),
+							{convergence_acknowledgement, Node} ! {ack, node(), Cardinality}
+						end, lists:seq(1, LoopCount))
 					end)
 				end, NodesWithoutMe),
-        node_generic_tasks_functions_benchmark:meteorological_statistics_grisplasp(SampleCount,SampleInterval);
+        node_generic_tasks_functions_benchmark:meteorological_statistics_grisplasp(LoopCount, SampleCount, SampleInterval);
       cloudlasp ->
         node_generic_tasks_functions_benchmark:meteorological_statistics_cloudlasp(SampleCount,SampleInterval);
       xcloudlasp ->
