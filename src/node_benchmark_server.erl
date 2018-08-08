@@ -45,7 +45,6 @@ handle_info({benchmark_meteo_task}, State) ->
   %EvaluationMode = node_config:get(evaluation_mode, grisplasp),
 	EvaluationMode = xcloudlasp,
   logger:log(notice, "=== Starting meteo task benchmark in mode ~p ===~n", [EvaluationMode]),
-	io:format("COUCOU ~n"),
   SampleCount = 3,
   SampleInterval = ?MIN,
   node_generic_tasks_server:add_task({tasknav, all, fun () ->
@@ -77,10 +76,6 @@ handle_info({benchmark_meteo_task}, State) ->
       end
    end }),
   RunningTask = node_generic_tasks_worker:start_task(tasknav),
-	Tuple = element(4,RunningTask),
-	Pid = element(1,Tuple),
-	register(connector,Pid),
-	logger:log(notice,"Found Pid by tuple is ~p ~n",[Pid]),
   {noreply, State};
 
 handle_info(Msg, State) ->
