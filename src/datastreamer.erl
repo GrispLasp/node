@@ -15,12 +15,12 @@ send_data(Server,Timer) ->
   receive
     {server_up} -> io:format("Connection accepted by the server")
   end,
-  datastream(Server,Freq).
+  datastream(Server,Timer).
 
 datastream(Server,Timer) ->
   {pmod_nav, Pid, _Ref} = node_util:get_nav(),
   [Press, Temp] = gen_server:call(Pid, {read, alt, [press_out, temp_out], #{}}),
   Time = node_stream_worker:maybe_get_time(),
   {server,Server} ! {node(),Temp,Press,Time},
-  timer:sleep(Timer,
+  timer:sleep(Timer),
   datastream(Server,Timer).
