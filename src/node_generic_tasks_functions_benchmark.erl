@@ -134,60 +134,77 @@ meteorological_statistics_cloudlasp(Count) ->
 
 % ==> "Flood" raw data to the AWS server. The server will do the computation, aggregation and replication with Lasp on cloud.
 % TODO: untested
-meteorological_statistics_xcloudlasp(SampleCount, SampleInterval) ->
-
-  logger:log(notice, "Starting Meteo statistics task benchmarking for non aggregated data on lasp on cloud"),
-
-  % Must check if module is available
-  {pmod_nav, Pid, _Ref} = node_util:get_nav(),
-  % meteo = shell:rd(meteo, {press = [], temp = []}),
-  % State = #{press => [], temp => [], time => []},
+meteorological_statistics_xcloudlasp(Count) ->
+  Self = self(),
+  logger:log(notice,"Correct Pid is ~p ~n",[Self]),
+  Server = node(),
+  logger:log(notice,"Task is waiting for clients to send data ~n"),
+  receive
+    {Node,connect} -> logger:log(notice,"Received connection from ~p ~n",[Node]);
+    Msg -> Node = error,logger:log(notice,"Wrong message received ~n"),Pid = 0
+  end,
   State = maps:new(),
   State1 = maps:put(press, [], State),
   State2 = maps:put(temp, [], State1),
   State3 = maps:put(time, [], State2),
+  Id = spawn(node_generic_tasks_functions_benchmark,server_loop,[Node,Count,State3]),
+  register(server,Id),
+  {datastream,'node@my_grisp_board_2'} ! {server_up},
+  logger:log(notice,"sent ack"),
+  meteorological_statistics_cloudlasp(Count).
+  %logger:log(notice, "Starting Meteo statistics task benchmarking for non aggregated data on lasp on cloud"),
 
-  AWS_Server = maps:get(main_aws_server, node_config:get(remote_hosts)),
-  FoldFun = fun
-      (Elem, _Map) when is_integer(Elem)->
-          timer:sleep(SampleInterval),
-          T = node_stream_worker:maybe_get_time(),
-          % T = calendar:local_time(),
-          [Pr, Tmp] = gen_server:call(Pid, {read, alt, [press_out, temp_out], #{}}),
-          % [Pr, Tmp] = [1000.234, 29.55555],
-          NewValues = #{press => Pr, temp => Tmp, time => T},
-          {ok, Result} = rpc:call(AWS_Server, node_client, receive_meteo_data, [{node(), NewValues, SampleCount}])
-  end,
+  % Must check if module is available
+  %{pmod_nav, Pid, _Ref} = node_util:get_nav(),
+  % meteo = shell:rd(meteo, {press = [], temp = []}),
+  % State = #{press => [], temp => [], time => []},
+  %State = maps:new(),
+  %State1 = maps:put(press, [], State),
+  %State2 = maps:put(temp, [], State1),
+  %State3 = maps:put(time, [], State2),
 
-  M = lists:foldl(FoldFun, State3, lists:seq(1, SampleCount)).
+  %AWS_Server = maps:get(main_aws_server, node_config:get(remote_hosts)),
+  %FoldFun = fun
+  %    (Elem, _Map) when is_integer(Elem)->
+  %        timer:sleep(SampleInterval),
+  %        T = node_stream_worker:maybe_get_time(),
+  %        % T = calendar:local_time(),
+  %        [Pr, Tmp] = gen_server:call(Pid, {read, alt, [press_out, temp_out], #{}}),
+  %        % [Pr, Tmp] = [1000.234, 29.55555],
+  %        NewValues = #{press => Pr, temp => Tmp, time => T},
+  %        {ok, Result} = rpc:call(AWS_Server, node_client, receive_meteo_data, [{node(), NewValues, SampleCount}])
+  %end,
+
+  %M = lists:foldl(FoldFun, State3, lists:seq(1, SampleCount)).
 
   %TODO: Wait for benchmark results from the remote server
 
   server_loop(Node,Count,Measures) ->
+    receive
+      Data -> {Board,Temp,Press,T} = Data,logger:log(notice,"Data received by the server");
+      true -> Press = error, Temp = error, T = error, Board = error
+    end,
+    NewMeasures = #{press => maps:get(press, Measures) ++ [Press],
+    temp => maps:get(temp, Measures) ++ [Temp],
+    time => maps:get(time, Measures) ++ [T]},
+    Result = numerix_calculation(NewMeasures),
     if
-    Count == 0 ->
-                  [Pressures, Temperatures, Epochs] = maps:values(Measures),
-                  Result = #{measures => lists:zip3(Epochs, Pressures, Temperatures),
-                  pmean => 'Elixir.Numerix.Statistics':mean(Pressures),
-                  pvar => 'Elixir.Numerix.Statistics':variance(Pressures),
-                  tmean => 'Elixir.Numerix.Statistics':mean(Temperatures),
-                  tvar => 'Elixir.Numerix.Statistics':variance(Temperatures),
-                  cov => 'Elixir.Numerix.Statistics':covariance(Pressures, Temperatures)},
-                  %{ok, {NewId, NewT, NewM, NewV}} =
-                   {ok, {Id, _, _, _}} = hd(node_util:declare_crdts([node()])),
-                   lasp:update(Id, {add, Result}, self()),
-                   {ok,Set} = lasp:query(Id),
+      Count == 0 ->
+                    {ok, {Id, _, _, _}} = hd(node_util:declare_crdts([Board])),
+                    lasp:update(Id, {add, Result}, self()),
+                    {ok,Set} = lasp:query(Id),
                     L = sets:to_list(Set),
-                  logger:log(notice, "lasp set <<test>> at the end is ~p",[L]);
-    true ->
-            receive
-              Data -> {Board,Temp,Press,T} = Data,logger:log(notice,"Data received by the server");
-              true -> Press = error, Temp = error, T = error
-            end,
-            NewMeasures = #{press => maps:get(press, Measures) ++ [Press],
-            temp => maps:get(temp, Measures) ++ [Temp],
-            time => maps:get(time, Measures) ++ [T]},
-            NewCount = Count - 1,
-            server_loop(Node,NewCount,NewMeasures)
+                    logger:log(notice, "lasp set <<test>> at the end is ~p",[L]);
+      true -> NewCount = Count - 1,
+              server_loop(Node,NewCount,NewMeasures)
+    end.
 
-  end.
+numerix_calculation(Measures) ->
+  [Pressures, Temperatures, Epochs] = maps:values(Measures),
+  Result = #{measures => lists:zip3(Epochs, Pressures, Temperatures),
+  pmean => 'Elixir.Numerix.Statistics':mean(Pressures),
+  pvar => 'Elixir.Numerix.Statistics':variance(Pressures),
+  tmean => 'Elixir.Numerix.Statistics':mean(Temperatures),
+  tvar => 'Elixir.Numerix.Statistics':variance(Temperatures),
+  cov => 'Elixir.Numerix.Statistics':covariance(Pressures, Temperatures)},
+  Result.
