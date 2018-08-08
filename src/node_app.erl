@@ -38,6 +38,7 @@
 start(_StartType, _StartArgs) ->
 
     logger:log(notice, "Application Master starting Node app ~n"),
+    logger:log(notice,"Logger works fine"),
     {ok, Supervisor} = node:start(node),
     % application:ensure_all_started(os_mon),
     node_util:set_platform(),
