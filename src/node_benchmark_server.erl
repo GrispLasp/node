@@ -45,7 +45,7 @@ handle_info({benchmark_meteo_task, LoopCount}, State) ->
   logger:log(notice, "=== Starting meteo task benchmark in mode ~p ===~n", [EvaluationMode]),
   SampleCount = 5,
   SampleInterval = 5000,
-  node_generic_tasks_server:add_task({tasknav, all, fun () ->
+  node_generic_tasks_server:add_task({tasknav, node(), fun () ->
     case EvaluationMode of
       grisplasp ->
 				% NodeList = [node@GrispAdhoc,node2@GrispAdhoc],
