@@ -91,7 +91,7 @@ meteorological_statistics_grisplasp(LoopCount, SampleCount, SampleInterval) ->
         Self ! {done, Computations, Acks}
     end
   end,
-
+Time = erlang:monotonic_time(millisecond),
   logger:log(notice, "Spawning Acknowledgement receiver process"),
   % https://stackoverflow.com/questions/571339/erlang-spawning-processes-and-passing-arguments
   PidCAF = spawn(fun () -> ConvergenceAcknowledgementFun([]) end),
@@ -159,7 +159,7 @@ meteorological_statistics_cloudlasp(Count) ->
 
 % ==> "Flood" raw data to the AWS server. The server will do the computation, aggregation and replication with Lasp on cloud.
 % TODO: untested
-meteorological_statistics_xcloudlasp(Count) ->
+meteorological_statistics_xcloudlasp(Count,LoopCount) ->
   Self = self(),
   logger:log(notice,"Correct Pid is ~p ~n",[Self]),
   Server = node(),
@@ -172,7 +172,7 @@ meteorological_statistics_xcloudlasp(Count) ->
   State1 = maps:put(press, [], State),
   State2 = maps:put(temp, [], State1),
   State3 = maps:put(time, [], State2),
-  Id = spawn(node_generic_tasks_functions_benchmark,server_loop,[Node,Count,State3]),
+  Id = spawn(node_generic_tasks_functions_benchmark,server_loop,[Node,Count,1,LoopCount,State3]),
   register(server,Id),
   {datastream,'node@my_grisp_board_2'} ! {server_up},
   logger:log(notice,"sent ack"),
@@ -193,18 +193,20 @@ meteorological_statistics_xcloudlasp(Count) ->
   %    (Elem, _Map) when is_integer(Elem)->
   %        timer:sleep(SampleInterval),
   %        T = node_stream_worker:maybe_get_time(),
-  %        % T = calendar:local_time(),
+  %        % T = calendar:local_time(),lasp:read(node_util:atom_to_lasp_identifier(Node, state_gset), {cardinality, Cardinality}),
+
   %        [Pr, Tmp] = gen_server:call(Pid, {read, alt, [press_out, temp_out], #{}}),
   %        % [Pr, Tmp] = [1000.234, 29.55555],
   %        NewValues = #{press => Pr, temp => Tmp, time => T},
   %        {ok, Result} = rpc:call(AWS_Server, node_client, receive_meteo_data, [{node(), NewValues, SampleCount}])
-  %end,
+  %end,                    Spawned = whereis(ackreceiver),
 
   %M = lists:foldl(FoldFun, State3, lists:seq(1, SampleCount)).
 
-  %TODO: Wait for benchmark results from the remote server
+  %TODO: Wait for benchmark results from lasp:read(node_util:atom_to_lasp_identifier(Node, state_gset), {cardinality, Cardinality}),
 
-  server_loop(Node,Count,Measures) ->
+
+  server_loop(Node,DataCount,Cardi,LoopCount,Measures) ->
     receive
       Data -> {Board,Temp,Press,T} = Data,logger:log(notice,"Data received by the server");
       true -> Press = error, Temp = error, T = error, Board = error
@@ -214,17 +216,23 @@ meteorological_statistics_xcloudlasp(Count) ->
     time => maps:get(time, Measures) ++ [T]},
     Result = numerix_calculation(NewMeasures),
     if
-      Count == 0 ->
-                    %{ok, {Id, _, _, _}} = hd(node_util:declare_crdts([Board])),
-                    lasp:update(node_util:atom_to_lasp_identifier(Board, state_gset), {add, Result}, self()),
-                    UpdateTime = erlang:monotonic_time(millisecond),
-                    Server = 'server3@ec2-35-180-138-155.eu-west-3.compute.amazonaws.com',
-                    PidMainReceiver = spawn(node_generic_tasks_functions_benchmark,main_server_ack_receiver,[1,UpdateTime]),
-                    register(ackreceiver,PidMainReceiver),
-                    {connector,Server} ! {node(),Board,1};
-      true -> NewCount = Count - 1,
-              server_loop(Node,NewCount,NewMeasures)
-    end.
+      Cardi > LoopCount -> logger:log(notice,"Server loop is done");
+      true ->
+                if
+                  DataCount == 0 ->
+                                %{ok, {Id, _, _, _}} = hd(node_util:declare_crdts([Board])),
+                                lasp:update(node_util:atom_to_lasp_identifier(Board, state_gset), {add, Result}, self()),
+                                UpdateTime = os:system_time(),
+                                Server3 = 'server3@ec2-35-180-138-155.eu-west-3.compute.amazonaws.com',
+                                Server1 = 'server1@ec2-18-185-18-147.eu-central-1.compute.amazonaws.com',
+                                PidMainReceiver = spawn(node_generic_tasks_functions_benchmark,main_server_ack_receiver,[2,UpdateTime]),
+                                register(ackreceiver,PidMainReceiver),
+                                {connector,Server1} ! {node(),Board,Cardi},{connector,Server3} ! {node(),Board,Cardi},
+                                server_loop(Node,100,Cardi+1,LoopCount,NewMeasures);
+                  true -> NewCount = DataCount - 1,
+                          server_loop(Node,NewCount,Cardi,LoopCount,NewMeasures)
+                end
+      end.
 
 numerix_calculation(Measures) ->
   [Pressures, Temperatures, Epochs] = maps:values(Measures),
@@ -235,11 +243,15 @@ numerix_calculation(Measures) ->
   tvar => 'Elixir.Numerix.Statistics':variance(Temperatures),
   cov => 'Elixir.Numerix.Statistics':covariance(Pressures, Temperatures)},
   Result.
+
+
+
+
  main_server_ack_receiver(CountServer,UpdateTime) ->
   if
   CountServer > 0 -> receive
                       {Server,Time,Node} ->
-                                              ConvergTime = Time - UpdateTime,
+                                              ConvergTime = (Time - UpdateTime)/1000000,
                                               logger:log(notice,"=====Server ~p needed ~p milli to converge set: ~p===== ",[Server,ConvergTime,Node]),
                                               main_server_ack_receiver(CountServer-1,UpdateTime);
                       Meg -> error
@@ -247,14 +259,23 @@ numerix_calculation(Measures) ->
   true -> logger:log(notice,"=====Finish updating=====")
 end.
 
-updater_ack_receiver() ->
-  Self = node(),
 
-  receive
-    {Main,Node,Cardinality} -> logger:log(notice,"=========updating request sent by main server for set ~p with cardinality ~p======",[Node,Cardinality]),
-                               lasp:read(node_util:atom_to_lasp_identifier(Node, state_gset), {cardinality, Cardinality}),
-                               logger:log(notice,"=====blocking read done sending ack back to main======"),
-                               Time = erlang:monotonic_time(millisecond),
-                          {ackreceiver,Main} ! {Self,Time,Node};
-    Msg -> error
+
+
+
+
+updater_ack_receiver(Count,LoopCount) ->
+  Self = node(),
+ if
+   Count > LoopCount -> logger:log(notice,"function is over cardinality of ~p reacher",[LoopCount]);
+  true ->receive
+              {Main,Node,Cardinality} -> logger:log(notice,"=========updating request sent by main server for set ~p with cardinality ~p======",[Node,Cardinality]),
+                                         lasp:read(node_util:atom_to_lasp_identifier(Node, state_gset), {cardinality, Cardinality}),
+                                         Time = os:system_time(),
+                                         logger:log(notice,"=====blocking read done sending ack back to main======"),
+                                         NewCount = Count + 1,
+                                         {ackreceiver,Main} ! {Self,Time,Node},
+                                         updater_ack_receiver(NewCount,LoopCount);
+                                  Msg -> error
+            end
   end.
