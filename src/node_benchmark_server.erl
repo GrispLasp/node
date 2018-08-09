@@ -47,7 +47,7 @@ handle_info({benchmark_meteo_task, LoopCount}, State) ->
   SampleInterval = 5000,
 	FindTask = node_generic_tasks_server:find_task(tasknav),
 	if
-		FindTask == more_than_one_task -> node_generic_tasks_server:emove_task(tasknav);
+		FindTask == more_than_one_task -> node_generic_tasks_server:remove_task(tasknav);
 	  true -> logger:log(notice,"tasknav not created yet")
 	end,
   node_generic_tasks_server:add_task({tasknav, node(), fun () ->
