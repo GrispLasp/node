@@ -239,19 +239,22 @@ numerix_calculation(Measures) ->
   if
   CountServer > 0 -> receive
                       {Server,Time,Node} ->
-                                              main_server_ack_receiver(CountServer-1,UpdateTime),
                                               ConvergTime = Time - UpdateTime,
-                                              logger:log(notice,"Server ~p needed ~p milli to converge set: ~p ",[Server,ConvergTime,Node]);
+                                              logger:log(notice,"=====Server ~p needed ~p milli to converge set: ~p===== ",[Server,ConvergTime,Node]),
+                                              main_server_ack_receiver(CountServer-1,UpdateTime);
                       Meg -> error
                     end;
-  true -> logger:log(notice,"Finish updating")
+  true -> logger:log(notice,"=====Finish updating=====")
 end.
 
 updater_ack_receiver() ->
   Self = node(),
+
   receive
-    {Main,Node,Cardinality} -> lasp:read(node_util:atom_to_lasp_identifier(Node, state_gset), {cardinality, Cardinality}),
-                              Time = erlang:monotonic_time(millisecond),
+    {Main,Node,Cardinality} -> logger:log(notice,"=========updating request sent by main server for set ~p with cardinality ~p======",[Node,Cardinality]),
+                               lasp:read(node_util:atom_to_lasp_identifier(Node, state_gset), {cardinality, Cardinality}),
+                               logger:log(notice,"=====blocking read done sending ack back to main======"),
+                               Time = erlang:monotonic_time(millisecond),
                           {ackreceiver,Main} ! {Self,Time,Node};
     Msg -> error
   end.
