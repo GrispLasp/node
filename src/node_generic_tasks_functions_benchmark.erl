@@ -221,7 +221,7 @@ meteorological_statistics_xcloudlasp(Count) ->
                     Server = 'server3@ec2-35-180-138-155.eu-west-3.compute.amazonaws.com',
                     PidMainReceiver = spawn(node_generic_tasks_functions_benchmark,main_server_ack_receiver,[1,UpdateTime]),
                     register(ackreceiver,PidMainReceiver),
-                    {connector,Server} ! {node(),Board,100};
+                    {connector,Server} ! {node(),Board,1};
       true -> NewCount = Count - 1,
               server_loop(Node,NewCount,NewMeasures)
     end.
