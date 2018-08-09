@@ -45,6 +45,11 @@ handle_info({benchmark_meteo_task, LoopCount}, State) ->
   logger:log(notice, "=== Starting meteo task benchmark in mode ~p ===~n", [EvaluationMode]),
   SampleCount = 5,
   SampleInterval = 5000,
+	FindTask = node_generic_tasks_server:find_task(tasknav),
+	if
+		FindTask == more_than_one_task -> node_generic_tasks_server:emove_task(tasknav);
+	  true -> logger:log(notice,"tasknav not created yet")
+	end,
   node_generic_tasks_server:add_task({tasknav, node(), fun () ->
     case EvaluationMode of
       grisplasp ->
