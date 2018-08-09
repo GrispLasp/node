@@ -77,7 +77,7 @@ handle_info({benchmark_meteo_task, LoopCount}, State) ->
 	 RunningTask = node_generic_tasks_worker:start_task(tasknav),
 	Tuple = element(4,RunningTask),
 	Pid = element(1,Tuple),
-	register(connector,Pid)
+	register(connector,Pid),
   {noreply, State};
 
 handle_info(Msg, State) ->

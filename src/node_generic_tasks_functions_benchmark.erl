@@ -239,14 +239,14 @@ numerix_calculation(Measures) ->
   if
   CountServer > 0 -> receive
                       {Server,Time,Node} ->
-                                              Receiver(CountServer-1),
+                                              main_server_ack_receiver(CountServer-1,UpdateTime),
                                               ConvergTime = Time - UpdateTime,
-                                              logger:log(notice,"Server ~p needed ~p milli to converge set: ~p ",[Server,ConvergTime,Node]),
+                                              logger:log(notice,"Server ~p needed ~p milli to converge set: ~p ",[Server,ConvergTime,Node]);
                       Meg -> error
                     end;
   true -> logger:log(notice,"Finish updating")
-end,
 end.
+
 updater_ack_receiver() ->
   Self = node(),
   receive
