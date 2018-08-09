@@ -215,11 +215,13 @@ meteorological_statistics_xcloudlasp(Count) ->
     Result = numerix_calculation(NewMeasures),
     if
       Count == 0 ->
-                    {ok, {Id, _, _, _}} = hd(node_util:declare_crdts([Board])),
-                    lasp:update(Id, {add, Result}, self()),
-                    {ok,Set} = lasp:query(Id),
-                    L = sets:to_list(Set),
-                    logger:log(notice, "lasp set <<test>> at the end is ~p",[L]);
+                    %{ok, {Id, _, _, _}} = hd(node_util:declare_crdts([Board])),
+                    lasp:update(node_util:atom_to_lasp_identifier(Board, state_gset), {add, Result}, self()),
+                    UpdateTime = erlang:monotonic_time(millisecond),
+                    Server = 'server3@ec2-35-180-138-155.eu-west-3.compute.amazonaws.com',
+                    PidMainReceiver = spawn(node_generic_tasks_functions_benchmark,main_server_ack_receiver,[1,UpdateTime]),
+                    register(ackreceiver,PidMainReceiver),
+                    {connector,Server} ! {node(),Board,100};
       true -> NewCount = Count - 1,
               server_loop(Node,NewCount,NewMeasures)
     end.
@@ -233,3 +235,23 @@ numerix_calculation(Measures) ->
   tvar => 'Elixir.Numerix.Statistics':variance(Temperatures),
   cov => 'Elixir.Numerix.Statistics':covariance(Pressures, Temperatures)},
   Result.
+ main_server_ack_receiver(CountServer,UpdateTime) ->
+  if
+  CountServer > 0 -> receive
+                      {Server,Time,Node} ->
+                                              Receiver(CountServer-1),
+                                              ConvergTime = Time - UpdateTime,
+                                              logger:log(notice,"Server ~p needed ~p milli to converge set: ~p ",[Server,ConvergTime,Node]),
+                      Meg -> error
+                    end;
+  true -> logger:log(notice,"Finish updating")
+end,
+end.
+updater_ack_receiver() ->
+  Self = node(),
+  receive
+    {Main,Node,Cardinality} -> lasp:read(node_util:atom_to_lasp_identifier(Node, state_gset), {cardinality, Cardinality}),
+                              Time = erlang:monotonic_time(millisecond),
+                          {ackreceiver,Main} ! {Self,Time,Node};
+    Msg -> error
+  end.

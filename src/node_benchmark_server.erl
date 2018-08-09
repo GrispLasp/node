@@ -67,10 +67,17 @@ handle_info({benchmark_meteo_task, LoopCount}, State) ->
 				logger:log(notice, "starting meteo cloud lasp task ~n"),
         node_generic_tasks_functions_benchmark:meteorological_statistics_cloudlasp(100);
       xcloudlasp ->
-        node_generic_tasks_functions_benchmark:meteorological_statistics_xcloudlasp(100)
+        node_generic_tasks_functions_benchmark:meteorological_statistics_xcloudlasp(100);
+			backupxcloudlasp ->
+				logger:log(notice,"Waiting for update to happen on other server"),
+				node_generic_tasks_functions_benchmark:updater_ack_receiver()
+
       end
    end }),
-  RunningTask = node_generic_tasks_worker:start_task(tasknav),
+	 RunningTask = node_generic_tasks_worker:start_task(tasknav),
+	Tuple = element(4,RunningTask),
+	Pid = element(1,Tuple),
+	register(connector,Pid)
   {noreply, State};
 
 handle_info(Msg, State) ->
