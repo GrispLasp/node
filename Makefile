@@ -118,6 +118,14 @@ stage: prod-app-src
 deploy: prod-app-src
 	$(REBAR) grisp deploy -n $(GRISPAPP) -v $(VERSION)
 
+1deploy: prod-app-src
+	cp $(DEPLOYMENTS_DIR)/1/grisp.ini.mustache $(GRISPFILES_DIR)/grisp.ini.mustache
+	$(REBAR) grisp deploy -n $(GRISPAPP) -v $(VERSION)
+
+2deploy: prod-app-src
+	cp $(DEPLOYMENTS_DIR)/2/grisp.ini.mustache $(GRISPFILES_DIR)/grisp.ini.mustache
+	$(REBAR) grisp deploy -n $(GRISPAPP) -v $(VERSION)
+
 10deploy: prod-app-src
 	cp $(DEPLOYMENTS_DIR)/10/grisp.ini.mustache $(GRISPFILES_DIR)/grisp.ini.mustache
 	$(REBAR) grisp deploy -n $(GRISPAPP) -v $(VERSION)

@@ -6,7 +6,6 @@
     {applications, [
         kernel,
         stdlib,
-        grisp,
         sasl
         % os_mon
         % grisp,
