@@ -223,7 +223,7 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
                   DataCount == 0 ->
                                 %{ok, {Id, _, _, _}} = hd(node_util:declare_crdts([Board])),
                                 lasp:update(node_util:atom_to_lasp_identifier(Board, state_gset), {add, Result}, self()),
-                                UpdateTime = os:system_time(),
+                                UpdateTime = erlang:monotonic_time(millisecond),
                                 Server3 = 'server3@ec2-35-180-138-155.eu-west-3.compute.amazonaws.com',
                                 Server1 = 'server1@ec2-18-185-18-147.eu-central-1.compute.amazonaws.com',
                                 PidMainReceiver = spawn(node_generic_tasks_functions_benchmark,main_server_ack_receiver,[2,UpdateTime]),
@@ -255,7 +255,7 @@ numerix_calculation(Measures) ->
   if
   CountServer > 0 -> receive
                       {Server,Time,Node} ->
-                                              ConvergTime = (Time - UpdateTime)/1000000,
+                                              ConvergTime = Time - UpdateTime,
                                               logger:log(warning,"=====Server ~p needed ~p milli to converge set: ~p===== ",[Server,ConvergTime,Node]),
                                               main_server_ack_receiver(CountServer-1,UpdateTime);
                       Meg -> error
@@ -287,7 +287,7 @@ updater_ack_receiver(Count,LoopCount) ->
                                          logger:log(warning,"==============Time for blocking read is ~p============",[TimeA - TimeB]),
                                          logger:log(warning,"=====blocking read done sending ack back to main======"),
                                          NewCount = Count + 1,
-                                         {ackreceiver,Main} ! {Self,Time,Node},
+                                         {ackreceiver,Main} ! {Self,TimeA,Node},
                                          updater_ack_receiver(NewCount,LoopCount);
                                   Msg -> error
             end
