@@ -274,7 +274,7 @@ updater_ack_receiver(Count,LoopCount) ->
                                          Time1 = os:system_time(),
                                          lasp:read(node_util:atom_to_lasp_identifier(Node, state_gset), {cardinality, Cardinality}),
                                          Time = os:system_time(),
-                                         TotalTime = Time-Time1)/1000000,
+                                         TotalTime = (Time-Time1)/1000000,
                                          logger:log(warning,"==============Time for blocking read is============",[TotalTime]),
                                          logger:log(warning,"=====blocking read done sending ack back to main======"),
                                          NewCount = Count + 1,
