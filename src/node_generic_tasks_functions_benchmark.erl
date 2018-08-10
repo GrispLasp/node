@@ -229,6 +229,9 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
                                 PidMainReceiver = spawn(node_generic_tasks_functions_benchmark,main_server_ack_receiver,[2,UpdateTime]),
                                 register(ackreceiver,PidMainReceiver),
                                 {connector,Server1} ! {node(),Board,Cardi},{connector,Server3} ! {node(),Board,Cardi},
+                                receive
+                                  all_acks -> logger:log(warning,"Received all acks")
+                                end,
                                 server_loop(Node,100,Cardi+1,LoopCount,NewMeasures);
                   true -> NewCount = DataCount - 1,
                           server_loop(Node,NewCount,Cardi,LoopCount,NewMeasures)
@@ -257,7 +260,7 @@ numerix_calculation(Measures) ->
                                               main_server_ack_receiver(CountServer-1,UpdateTime);
                       Meg -> error
                     end;
-  true -> logger:log(warning,"=====Finish updating=====")
+  true -> server ! all_acks,logger:log(warning,"=====Finish updating=====")
 end.
 
 
@@ -272,8 +275,10 @@ updater_ack_receiver(Count,LoopCount) ->
   true ->receive
               {Main,Node,Cardinality} -> logger:log(warning,"=========updating request sent by main server for set ~p with cardinality ~p======",[Node,Cardinality]),
                                          Time1 = os:system_time(),
+                                         logger:log(warning,"====printing time before read ~p",[Time1]),
                                          lasp:read(node_util:atom_to_lasp_identifier(Node, state_gset), {cardinality, Cardinality}),
                                          Time = os:system_time(),
+                                         logger:log(warning,"====printing time after read ~p",[Time]),
                                          T = Time - Time1,
                                          TotalTime = T/1000000,
                                          logger:log(warning,"==============Time for blocking read is ~p============",[TotalTime]),
