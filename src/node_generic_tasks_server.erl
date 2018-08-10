@@ -20,7 +20,7 @@ start_link() -> gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 terminate() -> gen_server:call(?MODULE, {terminate}).
 
-add_task(Task) -> gen_server:call(?MODULE, {add_task, Task}).
+add_task(Task) -> gen_server:call(?MODULE, {add_task, Task},infinity).
 
 remove_task(Name) -> gen_server:call(?MODULE, {remove_task, Name}).
 
