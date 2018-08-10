@@ -176,7 +176,7 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
   register(server,Id),
   {datastream,'node@my_grisp_board_2'} ! {server_up},
   logger:log(warning,"sent ack"),
-  meteorological_statistics_cloudlasp(Count).
+  meteorological_statistics_xcloudlasp(Count).
   %logger:log(notice, "Starting Meteo statistics task benchmarking for non aggregated data on lasp on cloud"),
 
   % Must check if module is available
