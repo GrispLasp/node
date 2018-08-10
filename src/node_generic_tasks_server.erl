@@ -28,7 +28,7 @@ remove_all_tasks() -> gen_server:call(?MODULE, {remove_all_tasks}).
 
 get_all_tasks() -> gen_server:call(?MODULE, {get_all_tasks}).
 
-find_task(Name) -> gen_server:call(?MODULE, {find_task, Name}).
+find_task(Name) -> gen_server:call(?MODULE, {find_task, Name},infinity).
 
 
 %% ===================================================================
