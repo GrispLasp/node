@@ -161,12 +161,12 @@ meteorological_statistics_cloudlasp(Count) ->
 % TODO: untested
 meteorological_statistics_xcloudlasp(Count,LoopCount) ->
   Self = self(),
-  logger:log(notice,"Correct Pid is ~p ~n",[Self]),
+  logger:log(warning,"Correct Pid is ~p ~n",[Self]),
   Server = node(),
-  logger:log(notice,"Task is waiting for clients to send data ~n"),
+  logger:log(warning,"Task is waiting for clients to send data ~n"),
   receive
-    {Node,connect} -> logger:log(notice,"Received connection from ~p ~n",[Node]);
-    Msg -> Node = error,logger:log(notice,"Wrong message received ~n"),Pid = 0
+    {Node,connect} -> logger:log(warning,"Received connection from ~p ~n",[Node]);
+    Msg -> Node = error,logger:log(warning,"Wrong message received ~n"),Pid = 0
   end,
   State = maps:new(),
   State1 = maps:put(press, [], State),
@@ -175,7 +175,7 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
   Id = spawn(node_generic_tasks_functions_benchmark,server_loop,[Node,Count,1,LoopCount,State3]),
   register(server,Id),
   {datastream,'node@my_grisp_board_2'} ! {server_up},
-  logger:log(notice,"sent ack"),
+  logger:log(warning,"sent ack"),
   meteorological_statistics_cloudlasp(Count).
   %logger:log(notice, "Starting Meteo statistics task benchmarking for non aggregated data on lasp on cloud"),
 
@@ -208,7 +208,8 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
 
   server_loop(Node,DataCount,Cardi,LoopCount,Measures) ->
     receive
-      Data -> {Board,Temp,Press,T} = Data,logger:log(notice,"Data received by the server");
+      Data -> {Board,Temp,Press,T} = Data;
+      %logger:log(warning,"Data received by the server");
       true -> Press = error, Temp = error, T = error, Board = error
     end,
     NewMeasures = #{press => maps:get(press, Measures) ++ [Press],
@@ -216,7 +217,7 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
     time => maps:get(time, Measures) ++ [T]},
     Result = numerix_calculation(NewMeasures),
     if
-      Cardi > LoopCount -> logger:log(notice,"Server loop is done");
+      Cardi > LoopCount -> logger:log(warning,"Server loop is done");
       true ->
                 if
                   DataCount == 0 ->
@@ -252,11 +253,11 @@ numerix_calculation(Measures) ->
   CountServer > 0 -> receive
                       {Server,Time,Node} ->
                                               ConvergTime = (Time - UpdateTime)/1000000,
-                                              logger:log(notice,"=====Server ~p needed ~p milli to converge set: ~p===== ",[Server,ConvergTime,Node]),
+                                              logger:log(warning,"=====Server ~p needed ~p milli to converge set: ~p===== ",[Server,ConvergTime,Node]),
                                               main_server_ack_receiver(CountServer-1,UpdateTime);
                       Meg -> error
                     end;
-  true -> logger:log(notice,"=====Finish updating=====")
+  true -> logger:log(warning,"=====Finish updating=====")
 end.
 
 
@@ -267,14 +268,14 @@ end.
 updater_ack_receiver(Count,LoopCount) ->
   Self = node(),
  if
-   Count > LoopCount -> logger:log(notice,"function is over cardinality of ~p reacher",[LoopCount]);
+   Count > LoopCount -> logger:log(warning,"function is over cardinality of ~p reacher",[LoopCount]);
   true ->receive
-              {Main,Node,Cardinality} -> logger:log(notice,"=========updating request sent by main server for set ~p with cardinality ~p======",[Node,Cardinality]),
+              {Main,Node,Cardinality} -> logger:log(warning,"=========updating request sent by main server for set ~p with cardinality ~p======",[Node,Cardinality]),
                                          Time1 = os:system_time(),
                                          lasp:read(node_util:atom_to_lasp_identifier(Node, state_gset), {cardinality, Cardinality}),
                                          Time = os:system_time(),
-                                         logger:log(notice,"==============Time for blocking read is============",[(Time-Time1)/1000000]),
-                                         logger:log(notice,"=====blocking read done sending ack back to main======"),
+                                         logger:log(warning,"==============Time for blocking read is============",[(Time-Time1)/1000000]),
+                                         logger:log(warning,"=====blocking read done sending ack back to main======"),
                                          NewCount = Count + 1,
                                          {ackreceiver,Main} ! {Self,Time,Node},
                                          updater_ack_receiver(NewCount,LoopCount);
