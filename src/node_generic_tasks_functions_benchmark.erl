@@ -276,7 +276,7 @@ updater_ack_receiver(Count,LoopCount) ->
                                          Time = os:system_time(),
                                          T = Time - Time1,
                                          TotalTime = T/1000000,
-                                         logger:log(warning,"==============Time for blocking read is============",[TotalTime]),
+                                         logger:log(warning,"==============Time for blocking read is ~p============",[TotalTime]),
                                          logger:log(warning,"=====blocking read done sending ack back to main======"),
                                          NewCount = Count + 1,
                                          {ackreceiver,Main} ! {Self,Time,Node},
