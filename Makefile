@@ -10,11 +10,11 @@ REBAR            ?= $(shell which rebar3)
 # REVISION 		    ?= $(shell git rev-parse --short HEAD)
 GRISPAPP         ?= $(shell basename `find src -name "*.app.src"` .app.src)
 BASE_DIR         ?= $(shell pwd)
-DEPLOYMENTS_DIR		?= $(BASE_DIR)/priv/deployment_args
+DEPLOYMENTS_DIR		?= $(BASE_DIR)/deployment_args
 GRISPFILES_DIR		?= $(BASE_DIR)/grisp/grisp_base/files
 CACHE_DIR         ?= $(HOME)/.cache/rebar3
 # ERLANG_BIN       ?= $(shell dirname $(shell which erl))
-# HOSTNAME         ?= $(shell hostname)
+SHORTHOSTNAME         ?= $(shell hostname -s)
 COOKIE           ?= MyCookie
 VERSION 	       ?= 0.1.0
 # MAKE						 = make
@@ -43,6 +43,7 @@ all: compile
 
 
 compile:
+	cp $(DEPLOYMENTS_DIR)/node.app.src.prod $(BASE_DIR)/src/node.app.src
 	$(REBAR) compile
 
 # rebar3_grisp build call to sh(./otp_build boot -a) forces single directory change that make cannot overwrite
@@ -87,21 +88,23 @@ checkoutsclean:
 # Test targets
 #
 
-testshell: test-app-src
-	$(REBAR) as test shell --sname $(GRISPAPP) --setcookie $(COOKIE)
 
 shell: test-app-src
-	$(REBAR) as test shell --sname $(GRISPAPP) --setcookie $(COOKIE) --apps node
+	$(REBAR) as test shell --name $(GRISPAPP)$(num)@$(SHORTHOSTNAME) --setcookie $(COOKIE) --apps node
+
+testshell: test-app-src
+	$(REBAR) as test shell --name $(GRISPAPP)@$(SHORTHOSTNAME) --setcookie $(COOKIE)
+
 
 2shell: test-app-src
-	$(REBAR) as test shell --sname $(GRISPAPP)2 --setcookie $(COOKIE) --apps node
+	$(REBAR) as test shell --name $(GRISPAPP)2@$(SHORTHOSTNAME) --setcookie $(COOKIE) --apps node
 
 3shell: test-app-src
-	$(REBAR) as test shell --sname $(GRISPAPP)3 --setcookie $(COOKIE) --apps node
+	$(REBAR) as test shell --name $(GRISPAPP)3@$(SHORTHOSTNAME) --setcookie $(COOKIE) --apps node
 
 test-app-src:
 	cp $(BASE_DIR)/src/node.app.src $(BASE_DIR)/src/node.app.src.prod
-	cp $(DEPLOYMENTS_DIR)/node.app.src $(BASE_DIR)/src/node.app.src
+	cp $(DEPLOYMENTS_DIR)/node.app.src.nogrisp $(BASE_DIR)/src/node.app.src
 
 
 
@@ -115,26 +118,30 @@ rel: prod-app-src
 stage: prod-app-src
 	$(REBAR) release -d
 
+	# /Users/Laymer/EdgeComputing/grisp-lasp/node/deployment_args/10/
 deploy: prod-app-src
-	$(REBAR) grisp deploy -n $(GRISPAPP) -v $(VERSION)
+	echo $(n)
+	cp $(DEPLOYMENTS_DIR)/$(n)/grisp.ini.mustache $(GRISPFILES_DIR)/grisp.ini.mustache
+	$(REBAR) as deployg grisp deploy -n $(GRISPAPP) -v $(VERSION)
 
 1deploy: prod-app-src
 	cp $(DEPLOYMENTS_DIR)/1/grisp.ini.mustache $(GRISPFILES_DIR)/grisp.ini.mustache
-	$(REBAR) grisp deploy -n $(GRISPAPP) -v $(VERSION)
+	$(REBAR) as deployg grisp deploy -n $(GRISPAPP) -v $(VERSION)
 
 2deploy: prod-app-src
 	cp $(DEPLOYMENTS_DIR)/2/grisp.ini.mustache $(GRISPFILES_DIR)/grisp.ini.mustache
-	$(REBAR) grisp deploy -n $(GRISPAPP) -v $(VERSION)
+	$(REBAR) as deployg grisp deploy -n $(GRISPAPP) -v $(VERSION)
 
 10deploy: prod-app-src
 	cp $(DEPLOYMENTS_DIR)/10/grisp.ini.mustache $(GRISPFILES_DIR)/grisp.ini.mustache
-	$(REBAR) grisp deploy -n $(GRISPAPP) -v $(VERSION)
+	$(REBAR) as deployg grisp deploy -n $(GRISPAPP) -v $(VERSION)
 
 11deploy: prod-app-src
 	cp $(DEPLOYMENTS_DIR)/11/grisp.ini.mustache $(GRISPFILES_DIR)/grisp.ini.mustache
-	$(REBAR) grisp deploy -n $(GRISPAPP) -v $(VERSION)
+	$(REBAR) as deployg grisp deploy -n $(GRISPAPP) -v $(VERSION)
 
 prod-app-src:
-	cp $(BASE_DIR)/src/node.app.src.prod $(BASE_DIR)/src/node.app.src
+	cp $(DEPLOYMENTS_DIR)/node.app.src.prod $(BASE_DIR)/src/node.app.src
+	# cp $(DEPLOYMENTS_DIR)/node.app.src.nogrisp $(BASE_DIR)/src/node.app.src
 
 include tools.mk

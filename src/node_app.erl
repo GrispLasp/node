@@ -36,6 +36,8 @@
 % https://github.com/lasp-lang/lasp/pull/295/commits/e2f948f879145a5ff31cf5458201768ca97b406b
 
 start(_StartType, _StartArgs) ->
+    Conf = logger:get_primary_config(),
+    logger:log(notice, "Primary conf = ~p ~n", [Conf]),
     logger:log(notice, "Application Master starting Node app ~n"),
     {ok, Supervisor} = node:start(node),
     % application:ensure_all_started(os_mon),
@@ -59,6 +61,7 @@ start(_StartType, _StartArgs) ->
     PeerConfig = lasp_partisan_peer_service:manager(),
     logger:log(notice, "The manager used is ~p ~n", [PeerConfig]),
 
+    % add_task_meteo(),
     % node_generic_tasks_server:add_task({tasknav2, all, fun () -> logger:log(notice, "PRESS = ~p ~n", [pmod_nav(alt, [press_out])]) end }),
     % node_generic_tasks_worker:start_task(tasknav),
 
@@ -124,9 +127,9 @@ add_task1() ->
 add_task_meteo() ->
     % SampleCount = 30,
     % SampleInterval = ?FIVE,
-    SampleCount = 50,
-    SampleInterval = ?MIN,
-    Trigger = 2,
+    SampleCount = 10,
+    SampleInterval = ?THREE,
+    Trigger = 1,
     node_generic_tasks_server:add_task({tasknav, all, fun () -> node_generic_tasks_functions:meteorological_statistics(SampleCount,SampleInterval,Trigger) end }),
     node_generic_tasks_worker:start_task(tasknav).
 

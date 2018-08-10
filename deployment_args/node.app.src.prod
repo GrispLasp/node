@@ -1,4 +1,4 @@
- {application, node, [
+{application, node, [
     {description, "A GRiSP application"},
     {vsn, "0.1.0"},
     {registered, []},
@@ -6,7 +6,8 @@
     {applications, [
         kernel,
         stdlib,
-        sasl
+        sasl,
+        grisp
     ]},
     {env,[]},
     {modules, []},

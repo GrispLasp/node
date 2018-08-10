@@ -19,10 +19,10 @@ meteorological_statistics(SampleCount, SampleInterval, Trigger) ->
     FoldFun = fun
         (Elem, AccIn) when is_integer(Elem) andalso is_map(AccIn) ->
             timer:sleep(SampleInterval),
-            T = node_stream_worker:maybe_get_time(),
-            % T = calendar:local_time(),
-            [Pr, Tmp] = gen_server:call(Pid, {read, alt, [press_out, temp_out], #{}}),
-            % [Pr, Tmp] = [1000.234, 29.55555],
+            % T = node_stream_worker:maybe_get_time(),
+            T = calendar:local_time(),
+            % [Pr, Tmp] = gen_server:call(Pid, {read, alt, [press_out, temp_out], #{}}),
+            [Pr, Tmp] = [1000.234, 29.55555],
             #{press => maps:get(press, AccIn) ++ [Pr],
             temp => maps:get(temp, AccIn) ++ [Tmp],
             time => maps:get(time, AccIn) ++ [T]}
@@ -50,6 +50,7 @@ meteorological_statistics(SampleCount, SampleInterval, Trigger) ->
     % lasp:update({"<<chunks>>", state_gcounter}, increment, self()),
     % node_app:add_task_meteo().
 % {ok, S3} = lasp:query({<<"node@my_grisp_board_1">>, state_orset}), sets:to_list(S2).
+% lasp:query({<<"node@my_grisp_board_1">>, state_orset}).
     spawn(fun() ->
         lasp:read(ExecId, {cardinality, Trigger}),
         % ExecId = node_util:atom_to_lasp_identifier(executors,state_gset),
