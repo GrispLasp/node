@@ -226,7 +226,7 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
                                 lasp:update(node_util:atom_to_lasp_identifier(Board, state_gset), {add, Result}, self()),
                                 UpdateTime = erlang:monotonic_time(millisecond),
                                 TotalTime = UpdateTime-BeforeUpdate,
-                                logger:log(warning,"Time to update ~p",[TotalTime]),
+                                logger:log(warning," updatetime ~p",[UpdateTime]),
                                 Server3 = 'server3@ec2-35-180-138-155.eu-west-3.compute.amazonaws.com',
                                 Server1 = 'server1@ec2-18-185-18-147.eu-central-1.compute.amazonaws.com',
                                 PidMainReceiver = spawn(node_generic_tasks_functions_benchmark,main_server_ack_receiver,[2,UpdateTime]),
@@ -282,7 +282,8 @@ updater_ack_receiver(Count,LoopCount) ->
                                          TimeB = erlang:monotonic_time(millisecond),
                                          lasp:read(node_util:atom_to_lasp_identifier(Node, state_gset), {cardinality, Cardinality}),
                                          TimeA = erlang:monotonic_time(millisecond),
-                                        TotalTime = TimeA - TimeB,
+                                         logger:log(warning,"Read time is ~p",[TimeA]),
+                                         TotalTime = TimeA - TimeB,
                                          %Time = os:system_time(),
                                          %logger:log(warning,"====printing time after read ~p",[Time]),
                                          %T = Time - Time1,
@@ -290,7 +291,7 @@ updater_ack_receiver(Count,LoopCount) ->
                                          logger:log(warning,"==============Time for blocking read is ~p============",[TotalTime]),
                                          logger:log(warning,"=====blocking read done sending ack back to main======"),
                                          NewCount = Count + 1,
-                                         {ackreceiver,Main} ! {Self,TotalTime,Node},
+                                         {ackreceiver,Main} ! {Self,TimeA,Node},
                                          updater_ack_receiver(NewCount,LoopCount);
                                   Msg -> error
             end
