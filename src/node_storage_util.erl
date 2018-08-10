@@ -381,11 +381,11 @@ gc() ->
     % https://blog.heroku.com/logplex-down-the-rabbit-hole
     % _GC = [erlang:garbage_collect(Proc, [{type, 'major'}]) || Proc <- processes()].
 
-    _ = [logger:log(notice, "Mem = ~p ~n", [X]) || X <- mem()],
+    _ = [logger:log(info, "Mem = ~p ~n", [X]) || X <- mem()],
     _GC = [erlang:garbage_collect(Proc, [{type, 'major'}]) || Proc <- processes()],
 
     logger:log(notice, "Garbage was collected manually"),
-    _ = [logger:log(notice, "Mem = ~p ~n", [Y]) || Y <- mem()],
+    _ = [logger:log(info, "Mem = ~p ~n", [Y]) || Y <- mem()],
     % ok = print_alloc().
     ok.
 

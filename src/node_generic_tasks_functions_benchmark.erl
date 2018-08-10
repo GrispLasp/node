@@ -18,6 +18,7 @@ meteorological_statistics_grisplasp(LoopCount, SampleCount, SampleInterval) ->
 
   % logger:log(notice, "Starting Meteo statistics task benchmark with Lasp on GRiSP ~n"),
 
+
   Self = self(),
   MeteorologicalStatisticsFun = fun MSF (LoopCountRemaining, AccComputations) ->
 
@@ -33,7 +34,8 @@ meteorological_statistics_grisplasp(LoopCount, SampleCount, SampleInterval) ->
     FoldFun = fun
         (Elem, AccIn) when is_integer(Elem) andalso is_map(AccIn) ->
             timer:sleep(SampleInterval),
-            T = node_stream_worker:maybe_get_time(),
+            % T = node_stream_worker:maybe_get_time(),
+            T = calendar:local_time(),
             % T = calendar:local_time(),
             [Pr, Tmp] = gen_server:call(Pid, {read, alt, [press_out, temp_out], #{}}),
             % logger:log(notice, "Getting data from nav sensor pr: ~p tmp: ~p", [Pr, Tmp]),
@@ -69,7 +71,7 @@ meteorological_statistics_grisplasp(LoopCount, SampleCount, SampleInterval) ->
     if LoopCountRemaining > 1 ->
       MSF(LoopCountRemaining-1, NewAcc);
     true ->
-      timer:sleep(5000), % Give time to the CA process to finish receiving acks
+      timer:sleep(5000), % Give time to the CAF process to finish receiving acks
       convergence_acknowledgement ! {done, NewAcc}
     end
   end,
@@ -97,26 +99,16 @@ meteorological_statistics_grisplasp(LoopCount, SampleCount, SampleInterval) ->
   PidCAF = spawn(fun () -> ConvergenceAcknowledgementFun([]) end),
   PidMSF = spawn(fun () -> MeteorologicalStatisticsFun(LoopCount, #{}) end),
   register(convergence_acknowledgement, PidCAF),
+  register(meteo_stats, PidMSF),
 
   receive
-      % {Acks} ->
-      %   logger:log(notice, "Received all acks ~p", [Acks]),
-      %   logger:log(notice, "CRDT converged on all nodes"),
-      %   MapFun = fun(Elem) ->
-      %     logger:log(notice, "Elem is ~p", [Elem]),
-      %     {From, TConverged} = Elem,
-      %     TConvergence = TConverged - T2Computation,
-      %     logger:log(notice, "CRDT converged on ~p after ~p ms", [From, TConvergence]),
-      %     TConvergence
-      %   end,
-      %   ListConvergence = lists:map(MapFun, Acks),
-      %   AverageConvergenceTime = average(ListConvergence),
-      %   logger:log(notice, "Average convergence time: ~p ms", [AverageConvergenceTime]);
-      %
       {done, Computations, Acks} ->
+        grisp_led:color(1, blue),
+        grisp_led:color(2, green),
         logger:log(notice, "Meteo task is done, received acks and computations. Calculating computation time + convergence time..."),
         % logger:log(notice, "Computations: ~p - Acks: ~p", [Computations, Acks]),
-        AckMap = lists:foldl(
+
+        NodesConvergenceTime = lists:foldl(
           fun(Ack, Acc) ->
             {From, TConverged, Cardinality} = Ack,
             {T2Computation, _} = maps:get(Cardinality, Computations),
@@ -129,8 +121,62 @@ meteorological_statistics_grisplasp(LoopCount, SampleCount, SampleInterval) ->
                 maps:put(From, #{Cardinality => ConvergenceTime}, Acc)
             end
           end , #{}, Acks),
-        logger:log(notice, "Ack map is ~p", [AckMap]),
-        logger:log(notice, "Computations map is ~p", [Computations]),
+          % logger:log(notice, "Nodes convergence times is ~p", [NodesConvergenceTime]),
+          NodesConvergenceTimeCalculations = maps:map(fun(Node, ConvergenceTimes) ->
+            Convergences = maps:values(ConvergenceTimes),
+            SD = 'Elixir.Numerix.Statistics':std_dev(Convergences),
+            Var = 'Elixir.Numerix.Statistics':variance(Convergences),
+            Avg ='Elixir.Numerix.Statistics':mean(Convergences),
+            {{average, Avg}, {standard_deviation, SD}, {variance, Var}}
+          end, NodesConvergenceTime),
+
+          SumConvergenceTimes = lists:foldl(fun({{_, Mean},{_,_},{_,_}}, Acc) ->
+            Acc + Mean
+          end, 0, maps:values(NodesConvergenceTimeCalculations)),
+          MeanConvergenceTime = SumConvergenceTimes / length(maps:keys(NodesConvergenceTime)),
+
+          Variances = lists:foldl(fun({{_, _},{_,_},{_, Var}}, Acc) ->
+            Acc ++ [Var]
+          end, [],  maps:values(NodesConvergenceTimeCalculations)),
+
+          SampleSize1 = length(maps:keys(maps:get(lists:nth(1, maps:keys(NodesConvergenceTime)), NodesConvergenceTime))),
+          SampleSize2 = length(maps:keys(maps:get(lists:nth(2, maps:keys(NodesConvergenceTime)), NodesConvergenceTime))),
+          PooledVarianceConvergence = (((SampleSize1-1)*lists:nth(1,Variances)) + ((SampleSize2-1)*lists:nth(2,Variances)))/((SampleSize1+SampleSize2)/2),
+          PooledStandardDeviationConvergence = math:sqrt(PooledVarianceConvergence),
+          ComputationFiltered = maps:map(fun(Cardinality, {T2Computation, ComputationTime}) ->
+            ComputationTime
+          end, Computations),
+          MeanComputationTime = 'Elixir.Numerix.Statistics':mean(maps:values(ComputationFiltered)),
+          StandardDeviationComputationTime = 'Elixir.Numerix.Statistics':std_dev(maps:values(ComputationFiltered)),
+          VarianceComputationTime = 'Elixir.Numerix.Statistics':variance(maps:values(ComputationFiltered)),
+          % logger:log(info, "nodes total converges averages = ~p ~n", [NodesConvergenceTimeAverage]),
+
+        %%%%%%%%%%%%%%%%%%%%%%%
+        % Save results to ETS %
+        %%%%%%%%%%%%%%%%%%%%%%%
+        % TableName = list_to_atom(unicode:characters_to_list([atom_to_list(node()), "_results"], latin1)),
+        % Tmp = ets:new(TableName, [ordered_set, named_table, public]),
+        % ResultSave = case ets:insert_new(Tmp, {node(), {ComputationFiltered}, {MeanComputationTime}, {VarianceComputationTime}, {NodesConvergenceTime}, {NodesConvergenceTimeCalculations},{MeanConvergenceTime},{PooledVarianceConvergence}}) of
+        %     true ->
+        %       FileName = node(),
+        %       case ets:tab2file(Tmp, FileName, [{sync, true}]) of
+        %         ok ->
+        %           logger:log(notice, "Saved results to SD card."),
+        %           true = ets:delete(Tmp),
+        %           ok;
+        %         {error, Reason} ->
+        %           logger:log(error, "Could not save results to SD card"),
+        %           {error, Reason}
+        %       end;
+        %     false ->
+        %       logger:log(error, "Could not insert results in ets"),
+        %       {error, insert}
+        % end,
+        %%%%%%%%%%%%%%%%%%%%%%%%
+        % Save results to file %
+        %%%%%%%%%%%%%%%%%%%%%%%%
+        file:write_file(atom_to_list(node()), io_lib:fwrite("Computations: ~p ~nMean Computation Time: ~pms~nStandard Deviation Computation Time: ~p~nVariance Computation Time: ~p~nNodes Convergence Time: ~p ~nNodes Convergence Calculations: ~p ~nMean Convergence Time: ~pms~nPooled Standard Deviation Convergence Time: ~p~nPooled Variance Convergence Time: ~p~n", [ComputationFiltered, MeanComputationTime, StandardDeviationComputationTime, VarianceComputationTime, NodesConvergenceTime, NodesConvergenceTimeCalculations, MeanConvergenceTime, PooledStandardDeviationConvergence, PooledVarianceConvergence])),
+        timer:sleep(2000),
         exit(PidCAF, kill),
         exit(PidMSF, kill)
    end.

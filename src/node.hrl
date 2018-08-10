@@ -77,7 +77,7 @@ end).
 
 
 -define(ALL,     lists:seq(1,12) ).
--define(DAN,      lists:seq(1,4,1) ).
+-define(DAN,      lists:seq(1,3,1) ).
 -define(ALEX,     lists:seq(4,9,1) ).
 -define(IGOR,   lists:seq(10,12,1) ).
 % NEVER FORGET THIS EPIC MACRO :
