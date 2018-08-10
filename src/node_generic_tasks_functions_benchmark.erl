@@ -270,8 +270,10 @@ updater_ack_receiver(Count,LoopCount) ->
    Count > LoopCount -> logger:log(notice,"function is over cardinality of ~p reacher",[LoopCount]);
   true ->receive
               {Main,Node,Cardinality} -> logger:log(notice,"=========updating request sent by main server for set ~p with cardinality ~p======",[Node,Cardinality]),
+                                         Time1 = os:system_time(),
                                          lasp:read(node_util:atom_to_lasp_identifier(Node, state_gset), {cardinality, Cardinality}),
                                          Time = os:system_time(),
+                                         logger:log(notice,"==============Time for blocking read is============",[(Time-Time1)/1000000]),
                                          logger:log(notice,"=====blocking read done sending ack back to main======"),
                                          NewCount = Count + 1,
                                          {ackreceiver,Main} ! {Self,Time,Node},
