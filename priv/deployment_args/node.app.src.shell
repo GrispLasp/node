@@ -1,4 +1,4 @@
- {application, node, [
+{application, node, [
     {description, "A GRiSP application"},
     {vsn, "0.1.0"},
     {registered, []},
@@ -7,6 +7,16 @@
         kernel,
         stdlib,
         sasl
+        % os_mon
+        % grisp,
+        % os_mon,
+        % sasl,
+        % elixir,
+        % gen_stage,
+        % flow,
+        % numerix
+        % webserver,
+        % faker
     ]},
     {env,[]},
     {modules, []},

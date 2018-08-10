@@ -2,9 +2,11 @@
 
 % Add hosts
 % {host, {169,254,16,23}, ["alex-Lenovo-Yoga-2-13"]}.
-%{host, {169,254,91,23}, ["Laymer-3"]}.
-{host, {192,168,1,52}, ["Laymer"]}.
-{host, {169,254,11,228}, ["GrispAdhoc"]}.
+%{host, {169,254,91,23}, ["Laymer540"]}.
+{host, {192,254,21,49}, ["laymer"]}.
+
+%{host, {169,254,11,228}, ["GrispAdhoc"]}.
+
 {host, {169,254,16,1}, ["my_grisp_board_1"]}.
 {host, {169,254,16,2}, ["my_grisp_board_2"]}.
 {host, {169,254,16,3}, ["my_grisp_board_3"]}.

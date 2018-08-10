@@ -90,7 +90,7 @@ checkoutsclean:
 
 
 shell: test-app-src
-	$(REBAR) as test shell --name $(GRISPAPP)$(num)@$(SHORTHOSTNAME) --setcookie $(COOKIE) --apps node
+	$(REBAR) as test shell --name $(GRISPAPP)$(n)@$(SHORTHOSTNAME) --setcookie $(COOKIE) --apps node
 
 testshell: test-app-src
 	$(REBAR) as test shell --name $(GRISPAPP)@$(SHORTHOSTNAME) --setcookie $(COOKIE)
