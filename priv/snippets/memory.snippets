@@ -1,10 +1,14 @@
 erl -sname boo -setcookie MyCookie -remsh node@my_grisp_board_1
 PidMSF = whereis(meteo_stats).
 PidCAF = whereis(convergence_acknowledgement).
+PidMTF = whereis(meteo_task).
 recon:info(PidMSF).
+recon:info(PidCAF).
+recon:info(PidMTF).
 recon:info(PidMSF, heap_size).
 recon:info(PidCAF).
 recon:info(PidCAF, heap_size).
+recon:info(PidMTF).
 recon:get_state(node_ping_worker).
 processes().
 recon:proc_count(memory, 3).
@@ -30,3 +34,8 @@ TableName = list_to_atom(unicode:characters_to_list([atom_to_list(node()), "_res
 Tmp = ets:new(TableName, [ordered_set,named_table, public]).
 ets:insert_new(Tmp, {node(),{{2,3,"444"}, {477,19,99}, #{lol => {3,6,1}}}}).
 ets:take(Tmp, node()).
+
+
+observer_cli:start('node@my_grisp_board_1', 'MyCookie')
+observer_cli:start('node@my_grisp_board_2', 'MyCookie')
+observer_cli:start('node@my_grisp_board_3', 'MyCookie')

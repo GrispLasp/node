@@ -73,7 +73,7 @@ handle_info(timeout, CurrentList) ->
 	      [Time / 1000000]),
     logger:log(notice, "=== Nodes that answered back ~p ===~n",
 	      [PingedNodes]),
-    {noreply, PingedNodes, 60000};
+    {noreply, PingedNodes, 180000};
 handle_info(Msg, CurrentList) ->
     logger:log(info, "=== Unknown message: ~p~n", [Msg]),
     {noreply, CurrentList}.

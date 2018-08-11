@@ -3,49 +3,37 @@
 -compile(export_all).
 
 
-average(X) ->
-        average(X, 0, 0).
-
-average([H|T], Length, Sum) ->
-        average(T, Length + 1, Sum + H);
-
-average([], Length, Sum) ->
-        Sum / Length.
-
-
 % ==> Aggregation, computation and replication with Lasp on Edge
 meteorological_statistics_grisplasp(LoopCount, SampleCount, SampleInterval) ->
 
   % logger:log(notice, "Starting Meteo statistics task benchmark with Lasp on GRiSP ~n"),
 
-
   Self = self(),
+  SampleSeq = lists:seq(1, SampleCount),
+  MeteoMap = #{press => [], temp => [], time => []},
   MeteorologicalStatisticsFun = fun MSF (LoopCountRemaining, AccComputations) ->
 
     logger:log(notice, "Meteo Function remaining iterations: ~p", [LoopCountRemaining]),
 
     % Must check if module is available
     {pmod_nav, Pid, _Ref} = node_util:get_nav(),
-    State = maps:new(),
-    State1 = maps:put(press, [], State),
-    State2 = maps:put(temp, [], State1),
-    State3 = maps:put(time, [], State2),
 
-    FoldFun = fun
-        (Elem, AccIn) when is_integer(Elem) andalso is_map(AccIn) ->
+    % (Elem, AccIn) when is_integer(Elem) andalso is_map(AccIn) ->
+    FoldFun =
+        fun (Elem, AccIn) ->
             timer:sleep(SampleInterval),
             % T = node_stream_worker:maybe_get_time(),
-            T = calendar:local_time(),
-            % T = calendar:local_time(),
+            % T = calendar:local_time(), % Replace by erlang:monotonic_time(second) to reduce size
+            % T = erlang:monotonic_time(second),
             [Pr, Tmp] = gen_server:call(Pid, {read, alt, [press_out, temp_out], #{}}),
             % logger:log(notice, "Getting data from nav sensor pr: ~p tmp: ~p", [Pr, Tmp]),
             % [Pr, Tmp] = [1000.234, 29.55555],
-            #{press => maps:get(press, AccIn) ++ [Pr],
-            temp => maps:get(temp, AccIn) ++ [Tmp],
-            time => maps:get(time, AccIn) ++ [T]}
+            #{press => [Pr] ++ maps:get(press, AccIn),
+            temp => [Tmp] ++ maps:get(temp, AccIn),
+            time => [erlang:monotonic_time(second)] ++ maps:get(time, AccIn)}
     end,
 
-    M = lists:foldl(FoldFun, State3, lists:seq(1, SampleCount)),
+    M = lists:foldl(FoldFun, MeteoMap, SampleSeq),
     % logger:log(notice, "Done Sampling data"),
 
 
@@ -69,7 +57,13 @@ meteorological_statistics_grisplasp(LoopCount, SampleCount, SampleInterval) ->
     ComputationTime = T2Computation - T1Computation,
     NewAcc = maps:put(Cardinality, {T2Computation, ComputationTime}, AccComputations),
     if LoopCountRemaining > 1 ->
-      MSF(LoopCountRemaining-1, NewAcc);
+      % ShouldGC = (LoopCountRemaining rem 10),
+      % if ShouldGC == 0 ->
+      %   erlang:garbage_collect(),
+      %   MSF(LoopCountRemaining-1, NewAcc);
+      % true ->
+          MSF(LoopCountRemaining-1, NewAcc);
+      % end;
     true ->
       timer:sleep(5000), % Give time to the CAF process to finish receiving acks
       convergence_acknowledgement ! {done, NewAcc}
@@ -100,6 +94,7 @@ meteorological_statistics_grisplasp(LoopCount, SampleCount, SampleInterval) ->
   PidMSF = spawn(fun () -> MeteorologicalStatisticsFun(LoopCount, #{}) end),
   register(convergence_acknowledgement, PidCAF),
   register(meteo_stats, PidMSF),
+  register(meteo_task, self()),
 
   receive
       {done, Computations, Acks} ->
