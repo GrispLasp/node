@@ -65,8 +65,8 @@ set_config() ->
     %% Note: Use app environments variables in config/sys.config instead
     % partisan_config:set(partisan_peer_service_manager, partisan_hyparview_peer_service_manager),
     partisan_config:set(partisan_peer_service_manager,
-			partisan_hyparview_peer_service_manager),
-    % partisan_config:set(peer_port, 50000),
+			partisan_defaut_peer_service_manager),
+     partisan_config:set(peer_port, 50000),
     ok.
 
 start_link() ->
@@ -74,7 +74,7 @@ start_link() ->
     supervisor:start_link({local, node}, ?MODULE, []).
 
 start_link(Args) ->
-    set_config(),
+    %set_config(),
     supervisor:start_link({local, node}, ?MODULE, Args).
 
 start_node() ->
