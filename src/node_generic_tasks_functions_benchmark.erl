@@ -287,8 +287,10 @@ measure_to_map(Measures,LoopCount) ->
                                                                                         server2 => maps:get(server2, Measures)}
                                                                                         measure_to_map(NewMeasures);
                     'server3@ec2-35-180-138-155.eu-west-3.compute.amazonaws.com' -> NewMeasures = #{server1 => maps:get(server1, Measures),
-                                                                                        server2 => maps:get(server2, Measures) ++ [Time]};
+                                                                                        server2 => maps:get(server2, Measures) ++ [Time]}
+                                end;
                         Msg -> logger:log(warning,"Wrong message received")
+                      end
 
   end.
 
