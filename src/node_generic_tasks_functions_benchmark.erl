@@ -229,6 +229,8 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
                                 FinalTime = maybe_utc(localtime_ms()),
                                 logger:log(warning," time to update in millisecond ~p",[TotalTime]),
                                 logger:log(warning,"Update timestamp is ~p",[FinalTime]),
+                                Server1 = 'server1@ec2-18-185-18-147.eu-central-1.compute.amazonaws.com',
+                                Server3 = 'server3@ec2-35-180-138-155.eu-west-3.compute.amazonaws.com',
                                 PidMainReceiver = spawn(node_generic_tasks_functions_benchmark,main_server_ack_receiver,[2,FinalTime]),
                                 register(ackreceiver,PidMainReceiver),
                                 {connector,Server1} ! {node(),Board,Cardi},{connector,Server3} ! {node(),Board,Cardi},
@@ -308,9 +310,11 @@ localtime_ms(Now) ->
     {_, _, Micro} = Now,
     {Date, {Hours, Minutes, Seconds}} = calendar:now_to_local_time(Now),
     {Date, {Hours, Minutes, Seconds, Micro div 1000 rem 1000}}.
+
 maybe_utc({Date,{H,M,S,Ms}}) ->
-  {Date1,{H1,M1,S1}} = calendar:local_time_to_universal_time_dst({Date,{H,M,S}}),
+  {Date1,{H1,M1,S1}} = hd(calendar:local_time_to_universal_time_dst({Date,{H,M,S}})),
   time_to_timestamp({Date1,{H1,M1,S1,Ms}}).
 
-time_to_timestamp({Date,{H,M,S,Ms}) ->
-  Ms + (1000*S) + (M*60*1000) + (H*60*60*1000).
+time_to_timestamp({Date,{H,M,S,Ms}}) ->
+  Result = Ms + (1000*S) + (M*60*1000) + (H*60*60*1000),
+  Result.
