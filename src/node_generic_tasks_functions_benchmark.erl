@@ -189,3 +189,14 @@ meteorological_statistics_xcloudlasp(SampleCount, SampleInterval) ->
   M = lists:foldl(FoldFun, State3, lists:seq(1, SampleCount)).
 
   %TODO: Wait for benchmark results from the remote server
+
+mapreduce() ->
+    File = 'Elixir.File':stream("LICENSE.md"),
+% |> Elixir.Flow.from_enumerable()
+% |> Elixir.Flow.flat_map(&String.split(&1, " "))
+% |> Elixir.Flow.partition()
+% |> Elixir.Flow.reduce(fn -> %{} end, fn word, acc ->
+%   Elixir.Map.update(acc, word, 1, & &1 + 1)
+% end)
+% |> Elixir.Enum.to_list()
+    ok.

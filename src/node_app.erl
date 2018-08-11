@@ -26,6 +26,7 @@
 -export([laspread/3]).
 -export([add_task_meteo_union/0]).
 -export([add_task_meteo/0]).
+-export([mapreduce_task/0]).
 
 
 
@@ -69,6 +70,7 @@ start(_StartType, _StartArgs) ->
     % {_Task, _Targets, _Fun, _} = add_task_meteo(),
     % ?PAUSE10,
     % {_Task, _Targets, _Fun, _} = add_task_meteo_union(),
+    % {_Task, _Targets, _Fun, _} = node_app:mapreduce_task().
 
     {ok, Supervisor}.
 
@@ -143,6 +145,16 @@ add_task_meteo_union() ->
 myfit() ->
   {Intercept, Slope} = 'Elixir.Numerix.LinearRegression':fit([1.3, 2.1, 3.7, 4.2], [2.2, 5.8, 10.2, 11.8]),
   {Intercept, Slope}.
+
+
+mapreduce_task() ->
+    % SampleCount = 30,
+    % SampleInterval = ?FIVE,
+    % SampleCount = 10,
+    % SampleInterval = ?THREE,
+    % Trigger = 1,
+    node_generic_tasks_server:add_task({mapreduce, all, fun () -> node_generic_tasks_functions_benchmark:mapreduce() end }),
+    node_generic_tasks_worker:start_task(mapreduce).
 % Adding a new task in Lasp :
 % node_generic_tasks_server:add_task({task1, all, fun () -> node_generic_tasks_functions:temp_sensor({0, []}, 3000) end }),
 % node_generic_tasks_worker:start_task(task1),
