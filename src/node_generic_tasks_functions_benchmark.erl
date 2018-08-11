@@ -277,17 +277,20 @@ end.
 
 
 measure_to_map(Measures,LoopCount) ->
+  MapServer1 = maps:get(server1, Measures),
+  Size = maps:size(MapServer1),
   if
-    maps:size(maps:get(server1, Measures)) > 100 -> Measures;
+    Size > LoopCount -> Measures;
 
 
   true ->  receive
-              {Server,Time} ->  case Server
+              {Server,Time} ->  case Server of
                     'server1@ec2-18-185-18-147.eu-central-1.compute.amazonaws.com' ->  NewMeasures = #{server1 => maps:get(server1, Measures) ++ [Time],
-                                                                                        server2 => maps:get(server2, Measures)}
-                                                                                        measure_to_map(NewMeasures);
+                                                                                        server2 => maps:get(server2, Measures)},
+                                                                                        measure_to_map(NewMeasures,LoopCount);
                     'server3@ec2-35-180-138-155.eu-west-3.compute.amazonaws.com' -> NewMeasures = #{server1 => maps:get(server1, Measures),
-                                                                                        server2 => maps:get(server2, Measures) ++ [Time]}
+                                                                                        server2 => maps:get(server2, Measures) ++ [Time]},
+                                                                                        measure_to_map(NewMeasures,LoopCount)
                                 end;
                         Msg -> logger:log(warning,"Wrong message received")
                       end
