@@ -226,12 +226,13 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
                                 lasp:update(node_util:atom_to_lasp_identifier(Board, state_gset), {add, Result}, self()),
                                 UpdateTime = erlang:monotonic_time(millisecond),
                                 TotalTime = UpdateTime-BeforeUpdate,
-                                logger:log(warning," updatetime ~p",[UpdateTime]),
-                                Server3 = 'server3@ec2-35-180-138-155.eu-west-3.compute.amazonaws.com',
-                                Server1 = 'server1@ec2-18-185-18-147.eu-central-1.compute.amazonaws.com',
-                                PidMainReceiver = spawn(node_generic_tasks_functions_benchmark,main_server_ack_receiver,[2,UpdateTime]),
+                                FinalTime = maybe_utc(localtime_ms()),
+                                logger:log(warning," time to update in millisecond ~p",[TotalTime]),
+                                logger:log(warning,"Update timestamp is ~p",[FinalTime]),
+                                PidMainReceiver = spawn(node_generic_tasks_functions_benchmark,main_server_ack_receiver,[2,FinalTime]),
                                 register(ackreceiver,PidMainReceiver),
                                 {connector,Server1} ! {node(),Board,Cardi},{connector,Server3} ! {node(),Board,Cardi},
+
                                 receive
                                   all_acks -> logger:log(warning,"Received all acks")
                                 end,
@@ -282,17 +283,34 @@ updater_ack_receiver(Count,LoopCount) ->
                                          TimeB = erlang:monotonic_time(millisecond),
                                          lasp:read(node_util:atom_to_lasp_identifier(Node, state_gset), {cardinality, Cardinality}),
                                          TimeA = erlang:monotonic_time(millisecond),
-                                         logger:log(warning,"Read time is ~p",[TimeA]),
+                                         FinalTime = maybe_utc(localtime_ms()),
                                          TotalTime = TimeA - TimeB,
+                                         logger:log(warning,"Read timestamp is ~p",[FinalTime]),
+                                         logger:log(warning,"==============Time for blocking read is(local): ~p============",[TotalTime]),
                                          %Time = os:system_time(),
                                          %logger:log(warning,"====printing time after read ~p",[Time]),
                                          %T = Time - Time1,
                                          %TotalTime = T/1000000,
-                                         logger:log(warning,"==============Time for blocking read is ~p============",[TotalTime]),
+
                                          logger:log(warning,"=====blocking read done sending ack back to main======"),
                                          NewCount = Count + 1,
-                                         {ackreceiver,Main} ! {Self,TimeA,Node},
+                                         {ackreceiver,Main} ! {Self,FinalTime,Node},
                                          updater_ack_receiver(NewCount,LoopCount);
                                   Msg -> error
             end
   end.
+
+localtime_ms() ->
+    Now = os:timestamp(),
+    localtime_ms(Now).
+
+localtime_ms(Now) ->
+    {_, _, Micro} = Now,
+    {Date, {Hours, Minutes, Seconds}} = calendar:now_to_local_time(Now),
+    {Date, {Hours, Minutes, Seconds, Micro div 1000 rem 1000}}.
+maybe_utc({Date,{H,M,S,Ms}}) ->
+  {Date1,{H1,M1,S1}} = calendar:local_time_to_universal_time_dst({Date,{H,M,S}}),
+  time_to_timestamp({Date1,{H1,M1,S1,Ms}}).
+
+time_to_timestamp({Date,{H,M,S,Ms}) ->
+  Ms + (1000*S) + (M*60*1000) + (H*60*60*1000).
