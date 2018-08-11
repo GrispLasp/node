@@ -172,6 +172,11 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
   State1 = maps:put(press, [], State),
   State2 = maps:put(temp, [], State1),
   State3 = maps:put(time, [], State2),
+  Measure = maps:new(),
+  Measure1 = maps:put(server1, [], Measure),
+  Measure2 = maps:put(server2, [], Measure1),
+  MeasureId = spawn(node_generic_tasks_functions_benchmark,measure_to_map,[Measure2,LoopCount]),
+  register(measurer,MeasureId),
   Id = spawn(node_generic_tasks_functions_benchmark,server_loop,[Node,Count,1,LoopCount,State3]),
   register(server,Id),
   {datastream,'node@my_grisp_board_2'} ! {server_up},
@@ -263,11 +268,29 @@ numerix_calculation(Measures) ->
                       {Server,Time,Node} ->
                                               ConvergTime = Time - UpdateTime,
                                               logger:log(warning,"=====Server ~p needed ~p milli to converge set: ~p===== ",[Server,ConvergTime,Node]),
+                                              measurer ! {Server,ConvergTime},
                                               main_server_ack_receiver(CountServer-1,UpdateTime);
                       Meg -> error
                     end;
   true -> server ! all_acks,logger:log(warning,"=====Finish updating=====")
 end.
+
+
+measure_to_map(Measures,LoopCount) ->
+  if
+    maps:size(maps:get(server1, Measures)) > 100 -> Measures;
+
+
+  true ->  receive
+              {Server,Time} ->  case Server
+                    'server1@ec2-18-185-18-147.eu-central-1.compute.amazonaws.com' ->  NewMeasures = #{server1 => maps:get(server1, Measures) ++ [Time],
+                                                                                        server2 => maps:get(server2, Measures)}
+                                                                                        measure_to_map(NewMeasures);
+                    'server3@ec2-35-180-138-155.eu-west-3.compute.amazonaws.com' -> NewMeasures = #{server1 => maps:get(server1, Measures),
+                                                                                        server2 => maps:get(server2, Measures) ++ [Time]};
+                        Msg -> logger:log(warning,"Wrong message received")
+
+  end.
 
 
 
