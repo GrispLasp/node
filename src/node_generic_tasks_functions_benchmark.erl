@@ -278,9 +278,10 @@ end.
 
 measure_to_map(Measures,LoopCount) ->
   MapServer1 = maps:get(server1, Measures),
-  Size = maps:size(MapServer1),
+  Size = length(MapServer1),
+  PreviousCount = LoopCount - 1,
   if
-    Size > LoopCount -> Measures;
+    Size > PreviousCount -> logger:log(warning,"This is the list of final measure: ~p",[Measures]);
 
 
   true ->  receive
