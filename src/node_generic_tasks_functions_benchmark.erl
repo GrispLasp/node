@@ -326,7 +326,7 @@ updater_ack_receiver(Count,LoopCount,SetName) ->
                              FinalTime = maybe_utc(localtime_ms()),
                              {ok,Result} = Read,
                              Length = length(element(2,element(4,Result))),
-                             logger:log(warning,"Checking that set size corresponds to cardinality ~p = ~p",[Length,Count]),
+                             logger:log(warning,"Checking that set size corresponds to cardinality ~p -> ~p",[Length,Count]),
                              TimeA = erlang:monotonic_time(millisecond),
                              TotalTime = TimeA - TimeB,
                              %logger:log(warning,"Read timestamp is ~p",[FinalTime]),
