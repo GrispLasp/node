@@ -229,16 +229,16 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
                                 %{ok, {Id, _, _, _}} = hd(node_util:declare_crdts([Board])),
                                 BeforeUpdate = erlang:monotonic_time(millisecond),
                                 lasp:update(node_util:atom_to_lasp_identifier(Board, state_gset), {add, Result}, self()),
+                                FinalTime = maybe_utc(localtime_ms()),
                                 UpdateTime = erlang:monotonic_time(millisecond),
                                 TotalTime = UpdateTime-BeforeUpdate,
-                                FinalTime = maybe_utc(localtime_ms()),
                                 logger:log(warning," time to update in millisecond ~p",[TotalTime]),
                                 logger:log(warning,"Update timestamp is ~p",[FinalTime]),
                                 Server1 = 'server1@ec2-18-185-18-147.eu-central-1.compute.amazonaws.com',
                                 Server3 = 'server3@ec2-35-180-138-155.eu-west-3.compute.amazonaws.com',
-                                PidMainReceiver = spawn(node_generic_tasks_functions_benchmark,main_server_ack_receiver,[2,FinalTime]),
+                                PidMainReceiver = spawn(node_generic_tasks_functions_benchmark,main_server_ack_receiver,[2,FinalTime,Node]),
                                 register(ackreceiver,PidMainReceiver),
-                                {connector,Server1} ! {node(),Board,Cardi},{connector,Server3} ! {node(),Board,Cardi},
+                                {connector,Server1} ! {Node},{connector,Server3} ! {Node},
 
                                 receive
                                   all_acks -> logger:log(warning,"Received all acks")
@@ -262,10 +262,10 @@ numerix_calculation(Measures) ->
 
 
 
- main_server_ack_receiver(CountServer,UpdateTime) ->
+ main_server_ack_receiver(CountServer,UpdateTime,Node) ->
   if
   CountServer > 0 -> receive
-                      {Server,Time,Node} ->
+                      {Server,Time} ->
                                               ConvergTime = Time - UpdateTime,
                                               logger:log(warning,"=====Server ~p needed ~p milli to converge set: ~p===== ",[Server,ConvergTime,Node]),
                                               measurer ! {Server,ConvergTime},
@@ -303,32 +303,37 @@ measure_to_map(Measures,LoopCount) ->
 
 
 
-updater_ack_receiver(Count,LoopCount) ->
+updater_ack_receiver(Count,LoopCount,SetName) ->
   Self = node(),
- if
-   Count > LoopCount -> logger:log(warning,"function is over cardinality of ~p reacher",[LoopCount]);
-  true ->receive
-              {Main,Node,Cardinality} -> logger:log(warning,"=========updating request sent by main server for set ~p with cardinality ~p======",[Node,Cardinality]),
-                                        % Time1 = os:system_time(),
-                                         %logger:log(warning,"====printing time before read ~p",[Time1]),
-                                         TimeB = erlang:monotonic_time(millisecond),
-                                         lasp:read(node_util:atom_to_lasp_identifier(Node, state_gset), {cardinality, Cardinality}),
-                                         TimeA = erlang:monotonic_time(millisecond),
-                                         FinalTime = maybe_utc(localtime_ms()),
-                                         TotalTime = TimeA - TimeB,
-                                         logger:log(warning,"Read timestamp is ~p",[FinalTime]),
-                                         logger:log(warning,"==============Time for blocking read is(local): ~p============",[TotalTime]),
-                                         %Time = os:system_time(),
-                                         %logger:log(warning,"====printing time after read ~p",[Time]),
-                                         %T = Time - Time1,
-                                         %TotalTime = T/1000000,
+  if
+    Count < 1 -> receive
+                  {Node} -> SetName = Node,updater_ack_receiver(Count+1,LoopCount,SetName);
+                  Msg -> SetName = false
+                end;
+      true -> if
+                 Count > LoopCount -> logger:log(warning,"function is over cardinality of ~p reacher",[LoopCount]);
+                  true ->%receive
+                        %    {Main,Node,Cardinality} -> logger:log(warning,"=========updating request sent by main server for set ~p with cardinality ~p======",[Node,Cardinality]),
+                                                      % Time1 = os:system_time(),
+                                                       %logger:log(warning,"====printing time before read ~p",[Time1]),
+                                                       TimeB = erlang:monotonic_time(millisecond),
+                                                      Read = lasp:read(node_util:atom_to_lasp_identifier(SetName, state_gset), {cardinality, Count}),
+                                                       FinalTime = maybe_utc(localtime_ms()),
+                                                       TimeA = erlang:monotonic_time(millisecond),
+                                                       TotalTime = TimeA - TimeB,
+                                                       logger:log(warning,"Read timestamp is ~p",[FinalTime]),
+                                                       %logger:log(warning,"==============Time for blocking read is(local): ~p============",[TotalTime]),
+                                                       %Time = os:system_time(),
+                                                       %logger:log(warning,"====printing time after read ~p",[Time]),
+                                                       %T = Time - Time1,
+                                                       %TotalTime = T/1000000,
 
-                                         logger:log(warning,"=====blocking read done sending ack back to main======"),
-                                         NewCount = Count + 1,
-                                         {ackreceiver,Main} ! {Self,FinalTime,Node},
-                                         updater_ack_receiver(NewCount,LoopCount);
-                                  Msg -> error
-            end
+                                                       logger:log(warning,"=====blocking read done sending ack back to main======"),
+                                                       NewCount = Count + 1,
+                                                       {ackreceiver,Main} ! {Self,FinalTime,SetName},
+                                                       updater_ack_receiver(NewCount,LoopCount,SetName);
+                                                Msg -> error
+                          end
   end.
 
 localtime_ms() ->
