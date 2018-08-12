@@ -233,8 +233,8 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
                   DataCount == 0 ->
                                 %{ok, {Id, _, _, _}} = hd(node_util:declare_crdts([Board])),
                                 BeforeUpdate = erlang:monotonic_time(millisecond),
-                                lasp:update(node_util:atom_to_lasp_identifier(Board, state_gset), {add, Result}, self()),
                                 FinalTime = maybe_utc(localtime_ms()),
+                                lasp:update(node_util:atom_to_lasp_identifier(Board, state_gset), {add, Result}, self()),
                                 UpdateTime = erlang:monotonic_time(millisecond),
                                 TotalTime = UpdateTime-BeforeUpdate,
                                 logger:log(warning," time to update in millisecond ~p",[TotalTime]),
@@ -316,11 +316,12 @@ updater_ack_receiver(Count,LoopCount,SetName) ->
                  Count > LoopCount -> logger:log(warning,"function is over cardinality of ~p reacher",[LoopCount]);
                   true ->
                              TimeB = erlang:monotonic_time(millisecond),
+                             logger:log(warning,"Blocking on cardinality: ~p",[Count]),
                             Read = lasp:read(node_util:atom_to_lasp_identifier(SetName, state_gset), {cardinality, Count}),
                              FinalTime = maybe_utc(localtime_ms()),
                              TimeA = erlang:monotonic_time(millisecond),
                              TotalTime = TimeA - TimeB,
-                             logger:log(warning,"Read timestamp is ~p",[FinalTime]),
+                             %logger:log(warning,"Read timestamp is ~p",[FinalTime]),
                              logger:log(warning,"=====blocking read done sending ack back to main======"),
                              NewCount = Count + 1,
                              {ackreceiver,'server2@ec2-18-130-232-107.eu-west-2.compute.amazonaws.com'} ! {Self,FinalTime,SetName},
