@@ -33,7 +33,8 @@ terminate() -> gen_server:call(?MODULE, {terminate}).
 init([]) ->
   logger:log(notice, "Starting a node benchmark server"),
 	EvaluationMode = node_config:get(loopcount, 10),
-  erlang:send_after(60000, self(), {benchmark_meteo_task, EvaluationMode}),
+  DataLoop = node_config:get(dataloop,100),
+  erlang:send_after(60000, self(), {benchmark_meteo_task, Loop,DataLoop}),
   {ok, {}}.
 
 
@@ -41,7 +42,7 @@ handle_call(stop, _From, State) ->
     {stop, normal, ok, State}.
 
 
-handle_info({benchmark_meteo_task, LoopCount}, State) ->
+handle_info({benchmark_meteo_task, LoopCount,DataCount}, State) ->
   EvaluationMode = node_config:get(evaluation_mode, grisplasp),
   logger:log(warning, "=== Starting meteo task benchmark in mode ~p ===~n", [EvaluationMode]),
   SampleCount = 5,
@@ -67,9 +68,9 @@ handle_info({benchmark_meteo_task, LoopCount}, State) ->
         node_generic_tasks_functions_benchmark:meteorological_statistics_grisplasp(LoopCount, SampleCount, SampleInterval);
       cloudlasp ->
         logger:log(notice, "starting meteo cloud lasp task ~n"),
-        node_generic_tasks_functions_benchmark:meteorological_statistics_cloudlasp(100);
+        node_generic_tasks_functions_benchmark:meteorological_statistics_cloudlasp(DataCount);
       xcloudlasp ->
-        node_generic_tasks_functions_benchmark:meteorological_statistics_xcloudlasp(10000,LoopCount);
+        node_generic_tasks_functions_benchmark:meteorological_statistics_xcloudlasp(DataCount,LoopCount);
       backupxcloudlasp ->
         logger:log(warning,"Waiting for update to happen on otasknavther server"),
         node_generic_tasks_functions_benchmark:updater_ack_receiver(0,LoopCount,"brole")
