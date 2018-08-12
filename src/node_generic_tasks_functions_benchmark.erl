@@ -225,12 +225,12 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
     NewMeasures = #{press => maps:get(press, Measures) ++ [Press],
     temp => maps:get(temp, Measures) ++ [Temp],
     time => maps:get(time, Measures) ++ [T]},
-    Result = numerix_calculation(NewMeasures),
     if
       Cardi > LoopCount -> logger:log(warning,"Server loop is done");
       true ->
                 if
                   DataCount == 0 ->
+                                Result = numerix_calculation(NewMeasures),
                                 %{ok, {Id, _, _, _}} = hd(node_util:declare_crdts([Board])),
                                 BeforeUpdate = erlang:monotonic_time(millisecond),
                                 FinalTime = maybe_utc(localtime_ms()),
@@ -309,14 +309,14 @@ updater_ack_receiver(Count,LoopCount,SetName) ->
   Self = node(),
   if
     Count < 1 -> receive
-                  {Node} -> NewSetName = Node,updater_ack_receiver(Count+1,LoopCount,NewSetName);
+                  {Node} -> NewSetName = Node,logger:log(warning,"Ready to update set ~p",[NewSetName]),updater_ack_receiver(Count+1,LoopCount,NewSetName);
                   Msg -> NewSetName = false
                 end;
       true -> if
                  Count > LoopCount -> logger:log(warning,"function is over cardinality of ~p reacher",[LoopCount]);
                   true ->
                              TimeB = erlang:monotonic_time(millisecond),
-                             logger:log(warning,"Blocking on cardinality: ~p",[Count]),
+                             logger:log(warning,"Blocking on update of set ~p with cardinality: ~p",[SetName,Count]),
                             Read = lasp:read(node_util:atom_to_lasp_identifier(SetName, state_gset), {cardinality, Count}),
                              FinalTime = maybe_utc(localtime_ms()),
                              TimeA = erlang:monotonic_time(millisecond),
