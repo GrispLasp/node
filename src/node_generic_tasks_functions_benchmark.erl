@@ -307,8 +307,8 @@ updater_ack_receiver(Count,LoopCount,SetName) ->
   Self = node(),
   if
     Count < 1 -> receive
-                  {Node} -> SetName = Node,updater_ack_receiver(Count+1,LoopCount,SetName);
-                  Msg -> SetName = false
+                  {Node} -> NewSetName = Node,updater_ack_receiver(Count+1,LoopCount,NewSetName);
+                  Msg -> NewSetName = false
                 end;
       true -> if
                  Count > LoopCount -> logger:log(warning,"function is over cardinality of ~p reacher",[LoopCount]);
