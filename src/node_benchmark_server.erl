@@ -32,7 +32,8 @@ terminate() -> gen_server:call(?MODULE, {terminate}).
 
 init([]) ->
   logger:log(notice, "Starting a node benchmark server"),
-  erlang:send_after(60000, self(), {benchmark_meteo_task, 10}),
+	EvaluationMode = node_config:get(loopcount, 10),
+  erlang:send_after(60000, self(), {benchmark_meteo_task, EvaluationMode}),
   {ok, {}}.
 
 
