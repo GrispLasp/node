@@ -325,6 +325,7 @@ updater_ack_receiver(Count,LoopCount,SetName) ->
                              Read = lasp:read(node_util:atom_to_lasp_identifier(SetName, state_gset), {cardinality, Count}),
                              FinalTime = maybe_utc(localtime_ms()),
                              {ok,Result} = Read,
+                             logger:log(warning,"COUILLE"),
                              Length = length(element(2,element(4,Result))),
                              logger:log(warning,"Checking that set size corresponds to cardinality ~p -> ~p",[Length,Count]),
                              TimeA = erlang:monotonic_time(millisecond),
