@@ -239,9 +239,11 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
                                 TotalTime = UpdateTime-BeforeUpdate,
                                 logger:log(warning," time to update in millisecond ~p",[TotalTime]),
                                 logger:log(warning,"Update timestamp is ~p",[FinalTime]),
-                                PidMainReceiver = spawn(node_generic_tasks_functions_benchmark,main_server_ack_receiver,[2,FinalTime]),
+                                Set = sets:new(),
+                                Set1 = sets:add_element('server1@ec2-18-185-18-147.eu-central-1.compute.amazonaws.com',Set),
+                                ServerSet = sets:add_element('server3@ec2-35-180-138-155.eu-west-3.compute.amazonaws.com',Set1),
+                                PidMainReceiver = spawn(node_generic_tasks_functions_benchmark,main_server_ack_receiver,[ServerSet,FinalTime]),
                                 register(ackreceiver,PidMainReceiver),
-
                                 receive
                                   all_acks -> logger:log(warning,"Received all acks")
                                 end,
@@ -264,14 +266,17 @@ numerix_calculation(Measures) ->
 
 
 
- main_server_ack_receiver(CountServer,UpdateTime) ->
+ main_server_ack_receiver(ServerSet,UpdateTime) ->
+   Size = sets:size(ServerSet),
+   logger:log(warning,"Current size for server set in main server ack is ~p",[Size]),
   if
-  CountServer > 0 -> receive
+  Size > 0 -> receive
                       {Server,Time,Node} ->
                                               ConvergTime = Time - UpdateTime,
                                               logger:log(warning,"=====Server ~p needed ~p milli to converge set: ~p===== ",[Server,ConvergTime,Node]),
+                                              NewSet = sets:del_element(Server,ServerSet),
                                               measurer ! {Server,ConvergTime},
-                                              main_server_ack_receiver(CountServer-1,UpdateTime);
+                                              main_server_ack_receiver(NewSet,UpdateTime);
                       Meg -> error
                     end;
   true -> server ! all_acks,logger:log(warning,"=====Finish updating=====")
