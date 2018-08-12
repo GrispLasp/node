@@ -330,9 +330,8 @@ updater_ack_receiver(Count,LoopCount,SetName) ->
 
                                                        logger:log(warning,"=====blocking read done sending ack back to main======"),
                                                        NewCount = Count + 1,
-                                                       {ackreceiver,Main} ! {Self,FinalTime,SetName},
+                                                       {ackreceiver,'server2@ec2-18-130-232-107.eu-west-2.compute.amazonaws.com'} ! {Self,FinalTime,SetName},
                                                        updater_ack_receiver(NewCount,LoopCount,SetName);
-                                                Msg -> error
                           end
   end.
 
