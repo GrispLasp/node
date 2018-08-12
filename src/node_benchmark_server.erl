@@ -69,7 +69,7 @@ handle_info({benchmark_meteo_task, LoopCount}, State) ->
         logger:log(notice, "starting meteo cloud lasp task ~n"),
         node_generic_tasks_functions_benchmark:meteorological_statistics_cloudlasp(100);
       xcloudlasp ->
-        node_generic_tasks_functions_benchmark:meteorological_statistics_xcloudlasp(100,LoopCount);
+        node_generic_tasks_functions_benchmark:meteorological_statistics_xcloudlasp(10000,LoopCount);
       backupxcloudlasp ->
         logger:log(warning,"Waiting for update to happen on otasknavther server"),
         node_generic_tasks_functions_benchmark:updater_ack_receiver(0,LoopCount,"brole")
