@@ -7,6 +7,7 @@
 %% API
 -export([start_link/0, terminate/0]).
 -export([benchmark_meteo_task/0]).
+-export([benchmark_mapreduce_task/0]).
 
 %% Gen Server Callbacks
 -export([code_change/3, handle_call/3, handle_cast/2,
@@ -22,6 +23,8 @@ start_link() ->
 
 benchmark_meteo_task() -> gen_server:call(?MODULE, {benchmark_meteo_task}).
 
+benchmark_mapreduce_task() -> gen_server:call(?MODULE, {benchmark_mapreduce_task}).
+
 terminate() -> gen_server:call(?MODULE, {terminate}).
 
 %% ===================================================================
@@ -32,8 +35,15 @@ terminate() -> gen_server:call(?MODULE, {terminate}).
 
 init([]) ->
   logger:log(notice, "Starting a node benchmark server"),
-  erlang:send_after(60000, self(), {benchmark_meteo_task}),
-	{ok, {}}.
+  EvaluationMode = node_config:get(evaluation_mode, grisplasp),
+  case EvaluationMode of
+  	mapreduce ->
+		erlang:send_after(1000, self(), {benchmark_mapreduce_task}),
+		{ok, {}};
+	_ ->
+		erlang:send_after(60000, self(), {benchmark_meteo_task}),
+		{ok, {}}
+  end.
 
 
 handle_call(stop, _From, State) ->
@@ -74,6 +84,15 @@ handle_info({benchmark_meteo_task}, State) ->
       end
    end }),
   node_generic_tasks_worker:start_task(tasknav),
+  {noreply, State};
+
+handle_info({benchmark_mapreduce_task}, State) ->
+
+  logger:log(notice, "=== Starting mapreduce task benchmark in mode ===~n"),
+  node_generic_tasks_server:add_task({mapreduce, all, fun () ->
+        node_generic_tasks_functions_benchmark:mapreduce()
+   end }),
+  node_generic_tasks_worker:start_task(mapreduce),
   {noreply, State};
 
 handle_info(Msg, State) ->

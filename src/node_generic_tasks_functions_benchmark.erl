@@ -190,8 +190,71 @@ meteorological_statistics_xcloudlasp(SampleCount, SampleInterval) ->
 
   %TODO: Wait for benchmark results from the remote server
 
+
+
+
+
+
+
+
+
 mapreduce() ->
-    File = 'Elixir.File':stream("LICENSE.md"),
+    ok.
+    % {pmod_nav, Pid, _Ref} = node_util:get_nav(),
+    % meteo = shell:rd(meteo, {press = [], temp = []}),
+    % State = #{press => [], temp => [], time => []},
+
+
+    % Must check if module is available
+    % {pmod_nav, Pid, _Ref} = node_util:get_nav(),
+    % meteo = shell:rd(meteo, {press = [], temp = []}),
+    % State = #{press => [], temp => [], time => []},
+    % State = maps:new(),
+    % State1 = maps:put(press, [], State),
+    % State2 = maps:put(temp, [], State1),
+    % State3 = maps:put(time, "M", State2),
+
+    % FoldFun = fun
+    %     (Elem, AccIn) when is_integer(Elem) andalso is_map(AccIn) ->
+    %         timer:sleep(?ONE),
+    %         T = node_stream_worker:maybe_get_time(),
+    %         % [Pr, Tmp] = gen_server:call(Pid, {read, alt, [press_out, temp_out], #{}}),
+            % [Pr, Tmp] = [1000.234, 29.55555],
+    %         logger:log(notice, "Getting data from nav sensor pr: ~p tmp: ~p", [Pr, Tmp]),
+    %         % #{press => maps:get(press, AccIn) ++ [Pr],
+    %         % temp => maps:get(temp, AccIn) ++ [Tmp],
+    %         % time => maps:get(time, AccIn) ++ [T]}
+    %         unicode:characters_to_list(Pr,Tmp,"M")
+    % end,
+
+    % [Pr, Tmp] = [1000.234, 29.55555],
+    % T = calendar:local_time(),
+    % {_,{Hour,Min,_}} = calendar:local_time(),
+    % T = Hour*60 + Min,
+    % List = lists:foldl(FoldFun, "M", lists:seq(1, 10))
+    % L = [ unicode:characters_to_list([T,Pr,Tmp,"M"]) || X <- lists:seq(1, 10) ],
+
+    % L = [ unicode:characters_to_list([T,X,"M"]) || X <- 'Elixir.Testflow':emulated_pmod_nav_read("100") ],
+    % L = [ unicode:characters_to_list([T,X,"M"]) || X <- 'Elixir.Testflow':emulated_pmod_nav_read(100) ],
+    % Int = 'Elixir.String':to_integer(100),
+    % L = [ unicode:characters_to_list([T,X,"M"]) || X <- 'Elixir.Testflow':emulated_pmod_nav_read(Int) ],
+    % logger:log(notice, "Done: ~p ~n", [L]).
+    % logger:log(notice, "Done Sampling data"),'Elixir.Integer':parse(100).'Elixir.Testflow':emulated_pmod_nav_read(100).
+    % TupleList = 'Elixir.Testflow':mapreduce("/home/laymer/EdgeComputing/grisp-lasp/node/LICENSE.md"),
+    % TupleList = 'Elixir.Testflow':mapreduce("/home/laymer/EdgeComputing/grisp-lasp/node/LICENSE.md"),
+
+    % ets:new()
+    % % File = 'Elixir.File':stream!("LICENSE.md"),
+    % Stream = erlang:apply('Elixir.File', 'stream!', ["LICENSE.md"]),
+    % Flow = 'Elixir.Flow':from_enumerable(Stream),
+    % 'Elixir.Flow':flat_map(Flow, &String.split(&1, " ")),
+    % 'Elixir.Flow':partition(),
+    % 'Elixir.Flow':reduce(fun() -> %{} end,
+    %     fun(word, acc) ->
+    %         'Elixir.Map':update(acc, word, 1, & &1 + 1)
+    %     end),
+    % 'Elixir.Enum'.to_list().
+    % File = 'Elixir.File':stream!("LICENSE.md").
 % |> Elixir.Flow.from_enumerable()
 % |> Elixir.Flow.flat_map(&String.split(&1, " "))
 % |> Elixir.Flow.partition()
@@ -199,4 +262,4 @@ mapreduce() ->
 %   Elixir.Map.update(acc, word, 1, & &1 + 1)
 % end)
 % |> Elixir.Enum.to_list()
-    ok.
+    % ok.

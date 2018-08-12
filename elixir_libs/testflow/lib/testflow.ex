@@ -117,10 +117,97 @@ defmodule Testflow do
       # {{{1988,1,1},{hour_offset, hour_offset, hour_offset}}, [press_offset, temp_offset]}
     end
   end
+
+  def emulated_pmod_nav_read() do
+      # c1 = String.to_atom(count)
+      # IO.puts("item = #{c1}")
+    # {countval, rest} = Elixir.Integer.parse(c1)
+    for _index <- 1..100 do
+      press_absolute_offset = Enum.random(0..20) * :rand.uniform
+      temp_absolute_offset = Enum.random(0..6) * :rand.uniform
+      signs = {Enum.random(0..1), Enum.random(0..1)}
+      {press_offset, temp_offset} = cond do
+        signs == {0,0} -> {1000 - press_absolute_offset, 28 - temp_absolute_offset}
+        signs == {0,1} -> {1000 - press_absolute_offset, 28 + temp_absolute_offset}
+        signs == {1,1} -> {1000 + press_absolute_offset, 28 + temp_absolute_offset}
+        signs == {1,0} -> {1000 + press_absolute_offset, 28 - temp_absolute_offset}
+      end
+      # {{{1988,1,1},{hour_offset, minute_offset, second_offset}}, [press_offset, temp_offset]}
+      # key = (hour_offset*60 + minute_offset)
+      # [key, [press_offset, temp_offset]]
+      [press_offset, temp_offset]
+      # {{{1988,1,1},{hour_offset, hour_offset, hour_offset}}, [press_offset, temp_offset]}
+    end
+  end
+  #
+  # def emulated_pmod_nav_read(count) do
+  #     list = for index <- 1..count do
+  #         press_absolute_offset = Enum.random(0..20) * :rand.uniform
+  #         temp_absolute_offset = Enum.random(0..6) * :rand.uniform
+  #         signs = {Enum.random(0..1), Enum.random(0..1)}
+  #         signs == {0,0} -> {1000 - press_absolute_offset, 28 - temp_absolute_offset}
+  #         signs == {0,1} -> {1000 - press_absolute_offset, 28 + temp_absolute_offset}
+  #         signs == {1,1} -> {1000 + press_absolute_offset, 28 + temp_absolute_offset}
+  #         signs == {1,0} -> {1000 + press_absolute_offset, 28 - temp_absolute_offset}
+  #         press_offset, temp_offset ++ list
+  #     end
+  #     list
+  # end
+      # hour_offset = Enum.random(1..24)
+      # minute_offset = Enum.random(1..60)
+      # second_offset = Enum.random(1..60)
+      # {{{1988,1,1},{hour_offset, hour_offset, hour_offset}}, [press_offset, temp_offset]}
   #
 
-  def mapreduce do
-    ds = hello_from_the_other_side()
+  def mapreduce_file(filename) do
+      File.stream!(filename)
+      |> Flow.from_enumerable()
+      |> Flow.flat_map(&String.split(&1, " "))
+      |> Flow.partition()
+      |> Flow.reduce(fn -> %{} end, fn word, acc ->
+        Map.update(acc, word, 1, & &1 + 1)
+      end)
+      |> Enum.to_list()
+  end
+
+  def mapreduce_map(dataset) do
+      # File.stream!(filename)
+      Flow.from_enumerable(dataset)
+      |> Flow.flat_map(&String.split(&1, " "))
+      |> Flow.partition()
+      |> Flow.reduce(fn -> %{} end, fn word, acc ->
+        Map.update(acc, word, 1, & &1 + 1)
+      end)
+      |> Enum.to_list()
+  end
+  #
+  # def mapreduce() do
+  #     # File.stream!(filename)
+  #     window = Flow.Window.global()
+  #     |> Flow.Window.trigger_every(10)
+  #     flow = Flow.from_enumerable(1..100)
+  #     |> Flow.partition(window: window, stages: 1)
+  #     flow |> Flow.reduce(fn -> 0 end, &(&1 + &2)) |> Flow.emit(:state) |> Enum.to_list()
+  # end
+
+
+  def mapreduce() do
+      window = Flow.Window.periodic(1, :minute)
+
+      SomeTwitterClient.stream_tweets!()
+      |> Flow.from_enumerable()
+      |> Flow.flat_map(fn tweet -> tweet["mentions"] end)
+      |> Flow.partition(window: window)
+      |> Flow.reduce(fn -> %{} end, fn mention, acc ->
+        Map.update(acc, mention, 1, & &1 + 1)
+      end)
+      |> Flow.on_trigger(fn acc ->
+        MyDb.persist_count_so_far(acc)
+        {[], %{}} # Nothing to emit, reset the accumulator
+      end)
+      |> Flow.start_link()  end
+end
+    # ds = hello_from_the_other_side()
     # flow = Flow.from_enumerable(ds, stages: 1)
     # |> Flow.from_enumerable(ds, stages: 1)
     # |> Flow.group_by_key()
@@ -138,7 +225,7 @@ defmodule Testflow do
     # |> Flow.emit(:state)
     # |> Flow.partition(max_demand: 5, stages: 10) # instead of 100 and 50
     # |> Flow.map(&Enum.unzip/1)
-    |> Enum.to_list()
+    # |> Enum.to_list()
     # |> Flow.reduce(fn -> %{} end, fn [item], acc ->
     #   {{{y,mo,d},{h,m,s}}, tabs} = item
     #   key = h*60 + m
@@ -180,8 +267,6 @@ defmodule Testflow do
     # |> Enum.reverse()
     # |> Enum.sort(&(length(Tuple.to_list(&1)) >= length(Tuple.to_list(&2))))
     # IO.puts("Flow = #{inspect(flow)} ~n")
-  end
-end
   #
   # def get_key(tup) do
   #   k = cond do
