@@ -168,14 +168,19 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
     {Node,connect} -> logger:log(warning,"Received connection from ~p ~n",[Node]);
     Msg -> Node = error,logger:log(warning,"Wrong message received ~n"),Pid = 0
   end,
+  %%CREATING MAP FOR DATA
   State = maps:new(),
   State1 = maps:put(press, [], State),
   State2 = maps:put(temp, [], State1),
   State3 = maps:put(time, [], State2),
+  %%CREATING DATA FOR MEASURES
   Measure = maps:new(),
   Measure1 = maps:put(server1, [], Measure),
   Measure2 = maps:put(server2, [], Measure1),
   MeasureId = spawn(node_generic_tasks_functions_benchmark,measure_to_map,[Measure2,LoopCount]),
+  Server1 = 'server1@ec2-18-185-18-147.eu-central-1.compute.amazonaws.com',
+  Server3 = 'server3@ec2-35-180-138-155.eu-west-3.compute.amazonaws.com',
+  {connector,Server1} ! {Node},{connector,Server3} ! {Node},
   register(measurer,MeasureId),
   Id = spawn(node_generic_tasks_functions_benchmark,server_loop,[Node,Count,1,LoopCount,State3]),
   register(server,Id),
@@ -234,11 +239,8 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
                                 TotalTime = UpdateTime-BeforeUpdate,
                                 logger:log(warning," time to update in millisecond ~p",[TotalTime]),
                                 logger:log(warning,"Update timestamp is ~p",[FinalTime]),
-                                Server1 = 'server1@ec2-18-185-18-147.eu-central-1.compute.amazonaws.com',
-                                Server3 = 'server3@ec2-35-180-138-155.eu-west-3.compute.amazonaws.com',
-                                PidMainReceiver = spawn(node_generic_tasks_functions_benchmark,main_server_ack_receiver,[2,FinalTime,Node]),
+                                PidMainReceiver = spawn(node_generic_tasks_functions_benchmark,main_server_ack_receiver,[2,FinalTime]),
                                 register(ackreceiver,PidMainReceiver),
-                                {connector,Server1} ! {Node},{connector,Server3} ! {Node},
 
                                 receive
                                   all_acks -> logger:log(warning,"Received all acks")
@@ -262,14 +264,14 @@ numerix_calculation(Measures) ->
 
 
 
- main_server_ack_receiver(CountServer,UpdateTime,Node) ->
+ main_server_ack_receiver(CountServer,UpdateTime) ->
   if
   CountServer > 0 -> receive
-                      {Server,Time} ->
+                      {Server,Time,Node} ->
                                               ConvergTime = Time - UpdateTime,
                                               logger:log(warning,"=====Server ~p needed ~p milli to converge set: ~p===== ",[Server,ConvergTime,Node]),
                                               measurer ! {Server,ConvergTime},
-                                              main_server_ack_receiver(CountServer-1,UpdateTime,Node);
+                                              main_server_ack_receiver(CountServer-1,UpdateTime);
                       Meg -> error
                     end;
   true -> server ! all_acks,logger:log(warning,"=====Finish updating=====")
@@ -312,27 +314,18 @@ updater_ack_receiver(Count,LoopCount,SetName) ->
                 end;
       true -> if
                  Count > LoopCount -> logger:log(warning,"function is over cardinality of ~p reacher",[LoopCount]);
-                  true ->%receive
-                        %    {Main,Node,Cardinality} -> logger:log(warning,"=========updating request sent by main server for set ~p with cardinality ~p======",[Node,Cardinality]),
-                                                      % Time1 = os:system_time(),
-                                                       %logger:log(warning,"====printing time before read ~p",[Time1]),
-                                                       TimeB = erlang:monotonic_time(millisecond),
-                                                      Read = lasp:read(node_util:atom_to_lasp_identifier(SetName, state_gset), {cardinality, Count}),
-                                                       FinalTime = maybe_utc(localtime_ms()),
-                                                       TimeA = erlang:monotonic_time(millisecond),
-                                                       TotalTime = TimeA - TimeB,
-                                                       logger:log(warning,"Read timestamp is ~p",[FinalTime]),
-                                                       %logger:log(warning,"==============Time for blocking read is(local): ~p============",[TotalTime]),
-                                                       %Time = os:system_time(),
-                                                       %logger:log(warning,"====printing time after read ~p",[Time]),
-                                                       %T = Time - Time1,
-                                                       %TotalTime = T/1000000,
-
-                                                       logger:log(warning,"=====blocking read done sending ack back to main======"),
-                                                       NewCount = Count + 1,
-                                                       {ackreceiver,'server2@ec2-18-130-232-107.eu-west-2.compute.amazonaws.com'} ! {Self,FinalTime,SetName},
-                                                       updater_ack_receiver(NewCount,LoopCount,SetName)
-                          end
+                  true ->
+                             TimeB = erlang:monotonic_time(millisecond),
+                            Read = lasp:read(node_util:atom_to_lasp_identifier(SetName, state_gset), {cardinality, Count}),
+                             FinalTime = maybe_utc(localtime_ms()),
+                             TimeA = erlang:monotonic_time(millisecond),
+                             TotalTime = TimeA - TimeB,
+                             logger:log(warning,"Read timestamp is ~p",[FinalTime]),
+                             logger:log(warning,"=====blocking read done sending ack back to main======"),
+                             NewCount = Count + 1,
+                             {ackreceiver,'server2@ec2-18-130-232-107.eu-west-2.compute.amazonaws.com'} ! {Self,FinalTime,SetName},
+                             updater_ack_receiver(NewCount,LoopCount,SetName)
+                  end
   end.
 
 localtime_ms() ->
