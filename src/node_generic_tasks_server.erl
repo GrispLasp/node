@@ -44,11 +44,20 @@ init([]) ->
   {ok, {}}.
 
 % TODO: add infinite execution of a task
-handle_call({add_task, {Name, Targets, Fun}}, _From, State) ->
-  logger:log(info, "=== ~p ~p ~p ===~n", [Name, Targets, Fun]),
-  Task = {Name, Targets, Fun},
-  lasp:update({<<"tasks">>, state_orset}, {add, Task}, self()),
-  {reply, ok, State};
+handle_call({add_task, {TaskName, Targets, Fun}}, _From, State) ->
+  logger:log(info, "=== ~p ~p ~p ===~n", [TaskName, Targets, Fun]),
+  Task = {TaskName, Targets, Fun},
+  {ok, Tasks} = lasp:query({<<"tasks">>, state_orset}),
+  TasksList = sets:to_list(Tasks),
+  TaskExists = [{Name, Targets, Fun} || {Name, Targets, Fun} <- TasksList, Name =:= TaskName],
+  case length(TaskExists) of
+    1 ->
+      logger:log(info, "=== Error, task already exists ==="),
+      {reply, {ko, task_already_exist}, State};
+    0 ->
+      lasp:update({<<"tasks">>, state_orset}, {add, Task}, self()),
+      {reply, ok, State}
+  end;
 
 
 handle_call({remove_task, TaskName}, _From, State) ->

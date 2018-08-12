@@ -45,11 +45,15 @@ meteorological_statistics(SampleCount, SampleInterval, Trigger) ->
     {ok, {ExecId, _, _, _}} = lasp:declare({"<<executors>>", state_gset}, state_gset),
     % {ok, {ExecId, _, _, _}} = lasp:declare({"<<executors>>", state_gset}, state_gset).
     {ok, {NewId, NewT, NewM, NewV}} = lasp:update(Id, {add, Result}, self()),
+
+    % {ok, {NewId, NewT, NewM, NewV}} = lasp:update({<<"test">>, state_gset}, {add, "hello"}, self()),
+    % lasp:update({<<"executors">>}, {add, NewId}, self()),
     % {ok, {_, _, _, _}} = lasp:update(ExecId, {add, NewId}, self()),
     lasp:update(ExecId, {add, NewId}, self()),
     % lasp:update({"<<chunks>>", state_gcounter}, increment, self()),
     % node_app:add_task_meteo().
-% {ok, S3} = lasp:query({<<"node@my_grisp_board_1">>, state_orset}), sets:to_list(S2).
+    % {ok, Set} = lasp:query({<<"node@GrispAdhoc">>, state_gset}).
+    % sets:to_list(Set).
     spawn(fun() ->
         lasp:read(ExecId, {cardinality, Trigger}),
         % ExecId = node_util:atom_to_lasp_identifier(executors,state_gset),

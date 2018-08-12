@@ -1,0 +1,41 @@
+erl -sname boo -setcookie MyCookie -remsh node@my_grisp_board_1
+PidMSF = whereis(meteo_stats).
+PidCAF = whereis(convergence_acknowledgement).
+PidMTF = whereis(meteo_task).
+recon:info(PidMSF).
+recon:info(PidCAF).
+recon:info(PidMTF).
+recon:info(PidMSF, heap_size).
+recon:info(PidCAF).
+recon:info(PidCAF, heap_size).
+recon:info(PidMTF).
+recon:get_state(node_ping_worker).
+processes().
+recon:proc_count(memory, 3).
+[{X, erlang:round(recon_alloc:memory(X) / 1024)} || X <- [allocated, used, usage]].
+_GC = [erlang:garbage_collect(Proc, [{type, 'major'}]) || Proc <- processes()].
+
+
+lasp:query({<<"node@my_grisp_board_2">>, state_gset}).
+{ok, Set} = lasp:query({<<"results">>, state_orset}).
+sets:to_list(Set).
+
+
+ets:match(node(), '$1').
+
+ets:take(node(), {<<"node@my_grisp_board_2">>, state_gset}).
+ets:take(Tmp, {1}).
+
+X = #{"node@my_grisp_board_1" => #{1 => [3,4,5], 2 => [2,4,3], 3 => [4,3,2]}, "node@my_grisp_board_2" => #{1 => [2,2,5], 2 => [2,5,2], 3 => [6,3,2]}}.
+
+
+
+TableName = list_to_atom(unicode:characters_to_list([atom_to_list(node()), "_results"], latin1)).
+Tmp = ets:new(TableName, [ordered_set,named_table, public]).
+ets:insert_new(Tmp, {node(),{{2,3,"444"}, {477,19,99}, #{lol => {3,6,1}}}}).
+ets:take(Tmp, node()).
+
+
+observer_cli:start('node@my_grisp_board_1', 'MyCookie')
+observer_cli:start('node@my_grisp_board_2', 'MyCookie')
+observer_cli:start('node@my_grisp_board_3', 'MyCookie')

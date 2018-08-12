@@ -216,6 +216,7 @@ get_device() ->
 
 can_run_task(RunningTasksCount) ->
   {ok, CpuLoad} = node_utils_server:get_cpu_usage(),
+  % CpuLoad = 20,
   logger:log(notice, "=== CPU load ~.2f ===~n",[CpuLoad]),
 	DeviceType = get_device(),
 	logger:log(notice, "=== Device is ~p ===~n",[DeviceType]),
