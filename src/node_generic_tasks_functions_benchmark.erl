@@ -269,7 +269,7 @@ numerix_calculation(Measures) ->
                                               ConvergTime = Time - UpdateTime,
                                               logger:log(warning,"=====Server ~p needed ~p milli to converge set: ~p===== ",[Server,ConvergTime,Node]),
                                               measurer ! {Server,ConvergTime},
-                                              main_server_ack_receiver(CountServer-1,UpdateTime);
+                                              main_server_ack_receiver(CountServer-1,UpdateTime,Node);
                       Meg -> error
                     end;
   true -> server ! all_acks,logger:log(warning,"=====Finish updating=====")
