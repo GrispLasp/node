@@ -36,6 +36,7 @@
 % https://github.com/lasp-lang/lasp/pull/295/commits/e2f948f879145a5ff31cf5458201768ca97b406b
 
 start(_StartType, _StartArgs) ->
+
     logger:log(notice, "Application Master starting Node app ~n"),
     {ok, Supervisor} = node:start(node),
     % application:ensure_all_started(os_mon),
@@ -46,7 +47,6 @@ start(_StartType, _StartArgs) ->
     % logger:log(notice"Where am I going to appear?~n"),
     start_timed_apps(),
 
-    logger:log(notice, "Application Master started Node app ~n"),
     start_primary_workers(primary_workers),
     start_primary_workers(distributed_workers),
     % add_measurements(),
@@ -54,7 +54,7 @@ start(_StartType, _StartArgs) ->
     % logger:log(notice, "Node ~p", [node()]),
     % logger:log(notice, "Inet getifaddrs ~p", [inet:getifaddrs()]),
     LEDs = [1, 2],
-    % [grisp_led:flash(L, aqua, 500) || L <- LEDs],
+    [grisp_led:flash(L, aqua, 500) || L <- LEDs],
 
     PeerConfig = lasp_partisan_peer_service:manager(),
     logger:log(notice, "The manager used is ~p ~n", [PeerConfig]),

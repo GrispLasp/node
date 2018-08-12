@@ -42,7 +42,7 @@ handle_info({monitor_memory_usage}, State) ->
 		if MemUsageValue > 32 ->
 			logger:log(info, "=== Memory usage is high, persisting global CRDT states === ~n"),
 			persist_crdts();
-		true -> logger:log(notice, "=== Usage ~p mb === ~n", [MemUsageValue])
+		true -> logger:log(info, "=== Usage ~p mb === ~n", [MemUsageValue])
 		end,
     Interval = node_config:get(memcheck_interval, ?HMIN),
     {noreply, State, Interval};

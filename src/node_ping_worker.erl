@@ -38,7 +38,7 @@ init({}) ->
     logger:log(info, "Initializing Node Pinger~n"),
     process_flag(trap_exit,
 		 true), %% Ensure Gen Server gets notified when his supervisor dies
-    erlang:send_after(5000, self(),
+    erlang:send_after(30000, self(),
 		      {full_ping}), %% Start full pinger after 5 seconds
     % self() ! {full_ping},
     {ok, []}.
@@ -52,7 +52,7 @@ handle_call(_Message, _From, CurrentList) ->
     {reply, {ok, CurrentList}, CurrentList}.
 
 handle_info({full_ping}, CurrentList) ->
-    logger:log(notice, "=== Starting a full ping ===~n"),
+    logger:log(info, "=== Starting a full ping ===~n"),
     T1 = os:timestamp(),
     PingedNodes = ping(),
     T2 = os:timestamp(),
@@ -61,9 +61,9 @@ handle_info({full_ping}, CurrentList) ->
 	      [Time / 1000000]),
     logger:log(notice, "=== Nodes that answered back ~p ===~n",
 	      [PingedNodes]),
-    {noreply, PingedNodes, 30000};
+    {noreply, PingedNodes, 60000};
 handle_info(timeout, CurrentList) ->
-    logger:log(notice, "=== Timeout of full ping, restarting "
+    logger:log(info, "=== Timeout of full ping, restarting "
 	      "after 90s ===~n"),
     T1 = os:timestamp(),
     PingedNodes = ping(),
@@ -73,7 +73,7 @@ handle_info(timeout, CurrentList) ->
 	      [Time / 1000000]),
     logger:log(notice, "=== Nodes that answered back ~p ===~n",
 	      [PingedNodes]),
-    {noreply, PingedNodes, 30000};
+    {noreply, PingedNodes, 180000};
 handle_info(Msg, CurrentList) ->
     logger:log(info, "=== Unknown message: ~p~n", [Msg]),
     {noreply, CurrentList}.
@@ -104,11 +104,10 @@ ping() ->
 	end, [], node_config:get(remote_hosts, #{})),
     % List = (?BOARDS((?IGOR))) ++ ['nodews@Laymer-3'],
 
-		List = Remotes,
+		% List = Remotes,
 
-		% List = ['node@GrispAdhoc', 'node2@GrispAdhoc'],
-		% List = (?BOARDS((?ALL))),
-    % List = [generic_node_1@GrispAdhoc,generic_node_2@GrispAdhoc],
+		List = (?BOARDS((?DAN))),
+    % List = [node@GrispAdhoc,node2@GrispAdhoc],
 		% List =  (?BOARDS(?ALL)) ++ Remotes,
     ListWithoutSelf = lists:delete(node(), List),
 		lists:foldl(fun (Node, Acc) ->
@@ -116,15 +115,15 @@ ping() ->
 				pong ->
 					IsARemote = lists:member(Node, Remotes),
 					if IsARemote == true ->
-						logger:log(notice, "=== Node ~p is an aws server", [Node]),
+						logger:log(info, "=== Node ~p is an aws server", [Node]),
 						Acc ++ [Node];
 					true ->
-						logger:log(notice, "=== Attempting to join the node ~p with lasp", [Node]),
+						logger:log(info, "=== Attempting to join the node ~p with lasp", [Node]),
 						lasp_peer_service:join(Node),
 						Acc ++ [Node]
 					end;
 				pang ->
-					logger:log(notice, "=== Node ~p is unreachable", [Node]),
+					logger:log(info, "=== Node ~p is unreachable", [Node]),
 					Acc
 			end
 		end, [],  ListWithoutSelf).
