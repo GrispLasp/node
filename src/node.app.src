@@ -7,10 +7,7 @@
         kernel,
         stdlib,
         sasl,
-        elixir,
-        gen_stage,
-        flow,
-        testflow
+        grisp
     ]},
     {env,[]},
     {modules, []},

@@ -199,6 +199,10 @@ meteorological_statistics_xcloudlasp(SampleCount, SampleInterval) ->
 
 
 mapreduce() ->
+    Id = node_util:atom_to_lasp_id(states),
+    ?PAUSE10,
+    node_storage_util:flush_crdt(Id,file,save_no_rmv_all),
+    logger:log(notice, "Flushed"),
     ok.
     % {pmod_nav, Pid, _Ref} = node_util:get_nav(),
     % meteo = shell:rd(meteo, {press = [], temp = []}),

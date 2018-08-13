@@ -143,8 +143,10 @@ add_task_meteo_union() ->
 
 myfit() ->
   {Intercept, Slope} = 'Elixir.Numerix.LinearRegression':fit([1.3, 2.1, 3.7, 4.2], [2.2, 5.8, 10.2, 11.8]),
+  % erlang:apply('Elixir.File',stream!(filename)
   {Intercept, Slope}.
 
+% erlang:apply('Elixir.File', 'stream!', ["/home/laymer/EdgeComputing/grisp-lasp/node/data/states/states_000"]).
 % Adding a new task in Lasp :
 % node_generic_tasks_server:add_task({task1, all, fun () -> node_generic_tasks_functions:temp_sensor({0, []}, 3000) end }),
 % node_generic_tasks_worker:start_task(task1),

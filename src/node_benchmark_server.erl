@@ -87,7 +87,6 @@ handle_info({benchmark_meteo_task}, State) ->
   {noreply, State};
 
 handle_info({benchmark_mapreduce_task}, State) ->
-
   logger:log(notice, "=== Starting mapreduce task benchmark in mode ===~n"),
   node_generic_tasks_server:add_task({mapreduce, all, fun () ->
         node_generic_tasks_functions_benchmark:mapreduce()
