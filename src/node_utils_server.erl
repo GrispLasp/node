@@ -39,7 +39,7 @@ init([]) ->
 	State = #samples_state{s1 = S1},
 	GCInterval = node_config:get(gc_interval, ?MIN),
     % erlang:send_after(5000, self(), {get_cpu_usage}),
-    erlang:send_after(GCInterval, self(), {gc, GCInterval*2}),
+    erlang:send_after(GCInterval, self(), {gc, ?MIN*1.5}),
 		% {ok, State, 5000}.
 	{ok, State}.
 

@@ -32,7 +32,7 @@ terminate() -> gen_server:call(?MODULE, {terminate}).
 
 init([]) ->
   logger:log(notice, "Starting a node benchmark server"),
-  erlang:send_after(90000, self(), {benchmark_meteo_task, 10}),
+  erlang:send_after(90000, self(), {benchmark_meteo_task, 100}),
 	{ok, {}}.
 
 
@@ -43,9 +43,10 @@ handle_call(stop, _From, State) ->
 handle_info({benchmark_meteo_task, LoopCount}, State) ->
   EvaluationMode = node_config:get(evaluation_mode, grisplasp),
   logger:log(notice, "=== Starting meteo task benchmark in mode ~p ===~n", [EvaluationMode]),
-  SampleCount = 5,
-  SampleInterval = 1000,
+  SampleCount = 10,
+  SampleInterval = 0,
   node_generic_tasks_server:add_task({tasknav, all, fun () ->
+		LoopSeq = lists:seq(1, LoopCount),
     case EvaluationMode of
       grisplasp ->
 				% NodeList = [node@GrispAdhoc,node2@GrispAdhoc],
@@ -59,7 +60,7 @@ handle_info({benchmark_meteo_task, LoopCount}, State) ->
 							lasp:read(node_util:atom_to_lasp_identifier(Node, state_gset), {cardinality, Cardinality}),
 							% logger:log(notice, "CRDT with cardinality ~p from node ~p converged on our node! Sending Acknowledgement", [Cardinality, Node]),
 							{convergence_acknowledgement, Node} ! {ack, node(), Cardinality}
-						end, lists:seq(1, LoopCount))
+						end, LoopSeq)
 					end)
 				end, NodesWithoutMe),
         node_generic_tasks_functions_benchmark:meteorological_statistics_grisplasp(LoopCount, SampleCount, SampleInterval);

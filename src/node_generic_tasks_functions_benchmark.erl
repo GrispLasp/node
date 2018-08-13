@@ -6,6 +6,7 @@
 % ==> Aggregation, computation and replication with Lasp on Edge
 meteorological_statistics_grisplasp(LoopCount, SampleCount, SampleInterval) ->
 
+
   % logger:log(notice, "Starting Meteo statistics task benchmark with Lasp on GRiSP ~n"),
 
   Self = self(),
@@ -21,7 +22,7 @@ meteorological_statistics_grisplasp(LoopCount, SampleCount, SampleInterval) ->
     % (Elem, AccIn) when is_integer(Elem) andalso is_map(AccIn) ->
     FoldFun =
         fun (Elem, AccIn) ->
-            timer:sleep(SampleInterval),
+            % timer:sleep(SampleInterval),
             % T = node_stream_worker:maybe_get_time(),
             % T = calendar:local_time(), % Replace by erlang:monotonic_time(second) to reduce size
             % T = erlang:monotonic_time(second),
@@ -65,25 +66,17 @@ meteorological_statistics_grisplasp(LoopCount, SampleCount, SampleInterval) ->
           MSF(LoopCountRemaining-1, NewAcc);
       % end;
     true ->
-      timer:sleep(5000), % Give time to the CAF process to finish receiving acks
+      timer:sleep(30000), % Give time to the CAF process to finish receiving acks
       convergence_acknowledgement ! {done, NewAcc}
     end
   end,
 
   ConvergenceAcknowledgementFun = fun CA(Acks) ->
     receive
-      % Idea 1: To get the real convergence time, when receiving an ACK, send a response to the caller
-      % in order for him to measure the time it took to call the remote process here. The caller would
-      % then call this process again but this time to indicate how long it took for him to contact the node.
-      % We could then substract that time to TConverged thus giving us the true convergence time.
-
-      % Idea 2: Do a best effort acknowledgements reception.
-      % Add timeouts to the receive block as some nodes might be unavailable.
       {ack, From, Cardinality} ->
-        % logger:log(notice, "Received Ack from ~p with CRDT cardinality ~p", [From, Cardinality]),
         TConverged = erlang:monotonic_time(millisecond),
         CA([{From, TConverged, Cardinality} | Acks]);
-      {done, Computations} -> % Called by the meteo function once it has terminated
+      {done, Computations} -> % Called by the meteo process once it has terminated
         Self ! {done, Computations, Acks}
     end
   end,
@@ -91,8 +84,9 @@ meteorological_statistics_grisplasp(LoopCount, SampleCount, SampleInterval) ->
   logger:log(notice, "Spawning Acknowledgement receiver process"),
   % https://stackoverflow.com/questions/571339/erlang-spawning-processes-and-passing-arguments
   PidCAF = spawn(fun () -> ConvergenceAcknowledgementFun([]) end),
-  PidMSF = spawn(fun () -> MeteorologicalStatisticsFun(LoopCount, #{}) end),
   register(convergence_acknowledgement, PidCAF),
+  timer:sleep(20000),
+  PidMSF = spawn(fun () -> MeteorologicalStatisticsFun(LoopCount, #{}) end),
   register(meteo_stats, PidMSF),
   register(meteo_task, self()),
 
@@ -171,6 +165,8 @@ meteorological_statistics_grisplasp(LoopCount, SampleCount, SampleInterval) ->
         % Save results to file %
         %%%%%%%%%%%%%%%%%%%%%%%%
         file:write_file(atom_to_list(node()), io_lib:fwrite("Computations: ~p ~nMean Computation Time: ~pms~nStandard Deviation Computation Time: ~p~nVariance Computation Time: ~p~nNodes Convergence Time: ~p ~nNodes Convergence Calculations: ~p ~nMean Convergence Time: ~pms~nPooled Standard Deviation Convergence Time: ~p~nPooled Variance Convergence Time: ~p~n", [ComputationFiltered, MeanComputationTime, StandardDeviationComputationTime, VarianceComputationTime, NodesConvergenceTime, NodesConvergenceTimeCalculations, MeanConvergenceTime, PooledStandardDeviationConvergence, PooledVarianceConvergence])),
+        logger:log(info,"Wrote results to file. ~n"),
+        grisp_led:color(2, red),
         timer:sleep(2000),
         exit(PidCAF, kill),
         exit(PidMSF, kill)
