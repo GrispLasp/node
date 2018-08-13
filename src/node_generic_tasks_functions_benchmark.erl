@@ -177,6 +177,8 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
   Measure = maps:new(),
   Measure1 = maps:put(server1, [], Measure),
   Measure2 = maps:put(server2, [], Measure1),
+  logger:log(warning,"Declaring the following set: ~p",[Node]),
+  lasp:declare(node_util:atom_to_lasp_identifier(Node, state_gset)),
   MeasureId = spawn(node_generic_tasks_functions_benchmark,measure_to_map,[Measure2,LoopCount]),
   Server1 = 'server1@ec2-18-185-18-147.eu-central-1.compute.amazonaws.com',
   Server3 = 'server3@ec2-35-180-138-155.eu-west-3.compute.amazonaws.com',
