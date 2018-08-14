@@ -232,12 +232,15 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
       true ->
                 if
                   DataCount == 0 ->
+                                ComputationTimeA = erlang:monotonic_time(millisecond),
                                 Result = numerix_calculation(NewMeasures),
+                                ComputationTimeB = erlang:monotonic_time(millisecond),
+                                logger:log(warning,"Time to do the computation",[ComputationTimeB-ComputationTimeA]),
                                 Add = rand:uniform(),
                                 %{ok, {Id, _, _, _}} = hd(node_util:declare_crdts([Board])),
                                 BeforeUpdate = erlang:monotonic_time(millisecond),
                                 FinalTime = maybe_utc(localtime_ms()),
-                                lasp:update(node_util:atom_to_lasp_identifier(Board, state_gset), {add, Add}, self()),
+                                lasp:update(node_util:atom_to_lasp_identifier(Board, state_gset), {add, Result}, self()),
                                 UpdateTime = erlang:monotonic_time(millisecond),
                                 TotalTime = UpdateTime-BeforeUpdate,
                                 logger:log(warning," time to update in millisecond ~p",[TotalTime]),
@@ -328,7 +331,6 @@ updater_ack_receiver(Count,LoopCount,SetName) ->
                              Read = lasp:read(node_util:atom_to_lasp_identifier(SetName, state_gset), {cardinality, Count}),
                              FinalTime = maybe_utc(localtime_ms()),
                              {ok,Result} = Read,
-                             logger:log(warning,"COUILLE"),
                              Length = length(element(2,element(4,Result))),
                              logger:log(warning,"Checking that set size corresponds to cardinality ~p -> ~p",[Length,Count]),
                              TimeA = erlang:monotonic_time(millisecond),
