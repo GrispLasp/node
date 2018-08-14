@@ -233,10 +233,11 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
                 if
                   DataCount == 0 ->
                                 Result = numerix_calculation(NewMeasures),
+                                Add = rand:uniform(),
                                 %{ok, {Id, _, _, _}} = hd(node_util:declare_crdts([Board])),
                                 BeforeUpdate = erlang:monotonic_time(millisecond),
                                 FinalTime = maybe_utc(localtime_ms()),
-                                lasp:update(node_util:atom_to_lasp_identifier(Board, state_gset), {add, Result}, self()),
+                                lasp:update(node_util:atom_to_lasp_identifier(Board, state_gset), {add, Add}, self()),
                                 UpdateTime = erlang:monotonic_time(millisecond),
                                 TotalTime = UpdateTime-BeforeUpdate,
                                 logger:log(warning," time to update in millisecond ~p",[TotalTime]),
