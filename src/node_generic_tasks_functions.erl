@@ -8,6 +8,7 @@ nav_sensor(Comp, Register) ->
   % logger:log(info, "Value = ~p ~n", pmod_nav:read(alt, [press_out])),
   logger:log(notice, "Value = ~p ~n", pmod_nav:read(Comp, [Register])).
 
+
 meteorological_statistics(SampleCount, SampleInterval, Trigger) ->
     % Must check if module is available
     {pmod_nav, Pid, _Ref} = node_util:get_nav(),
