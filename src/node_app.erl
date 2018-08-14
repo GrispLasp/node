@@ -46,7 +46,7 @@ start(_StartType, _StartArgs) ->
     % group_leader(F, self()),
     % logger:log(notice"Where am I going to appear?~n"),
     start_timed_apps(),
-
+    %
     start_primary_workers(primary_workers),
     start_primary_workers(distributed_workers),
     % add_measurements(),
@@ -63,6 +63,7 @@ start(_StartType, _StartArgs) ->
     % node_generic_tasks_worker:start_task(tasknav),
 
 
+    {_Task, _Targets, _Fun, _} = add_task_data(),
     % {_Task, _Targets, _Fun, _} = add_task_meteo(),
     % ?PAUSE10,
     % {_Task, _Targets, _Fun, _} = add_task_meteo_union(),
@@ -121,6 +122,10 @@ add_task1() ->
     node_generic_tasks_server:add_task({task1, all, fun () -> node_generic_tasks_functions:temp_sensor({0, []}, Interval) end }),
     node_generic_tasks_worker:start_task(task1).
 
+add_task_data() ->
+    node_generic_tasks_server:add_task({taskdata, all, fun () -> node_generic_tasks_functions:all_sensor_data() end }),
+    node_generic_tasks_worker:start_task(taskdata).
+
 add_task_meteo() ->
     % SampleCount = 30,
     % SampleInterval = ?FIVE,
@@ -141,7 +146,7 @@ myfit() ->
   {Intercept, Slope} = 'Elixir.Numerix.LinearRegression':fit([1.3, 2.1, 3.7, 4.2], [2.2, 5.8, 10.2, 11.8]),
   {Intercept, Slope}.
 % Adding a new task in Lasp :
-% node_generic_tasks_server:add_task({task1, all, fun () -> node_generic_tasks_functions:temp_sensor({0, []}, 3000) end }),
+% node_generic_tasks_server:add_task({task1, all, fun () -> node_generic_tasks_functions:all_sensor_data() end }).,
 % node_generic_tasks_worker:start_task(task1),
 % ets:new(Identifier, [ordered_set,named_table,public]).
 % lasp:query({<<"meteostats">>,state_orset}).

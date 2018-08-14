@@ -1,6 +1,8 @@
 -module(node_generic_tasks_functions).
 -compile(export_all).
 
+-include("node.hrl").
+
 nav_sensor(Comp, Register) ->
   % grisp:add_device(spi1, pmod_nav),
   % logger:log(info, "Value = ~p ~n", pmod_nav:read(alt, [press_out])),
@@ -259,3 +261,50 @@ sonar_sensor(Mode, NodeTarget) ->
   register(sonar_sensor, PidSensor),
   PidListener = spawn(SonarListener),
   register(sonar_listener, PidListener).
+
+% all_sensor_data() ->
+%     {pmod_nav, Nav, _} = node_util:get_nav(),
+%     {pmod_als, Als, _} = node_util:get_als(),
+%     {ok, {Id, _, _, _}} = lasp:declare(node_util:atom_to_lasp_identifier(node(),state_gset)),
+%
+%     Looping = fun Loop(I, N, A) ->
+%         [Press, Temp] = gen_server:call(I, {read, alt, [press_out, temp_out]}),
+%         [MagX, MagY, MagZ] = gen_server:call(N, {read, mag, [out_x_m, out_y_m, out_z_m]}),
+%         [GyroX, GyroY, GyroZ] = gen_server:call(N, {read, acc, [out_x_g, out_y_g, out_z_g]}),
+%         [Raw] = gen_server:call(A, {read, raw, []}),
+%         T = node_stream_worker:maybe_get_time(),
+%         {ok, {_, _, _, _}} = lasp:update(I, {add, {T, Raw, Press, Temp, {MagX, MagY, MagZ}, {GyroX, GyroY, GyroZ}}}, self()),
+%     	Loop(I,N,A)
+% 	end,
+%node_generic_tasks_functions:all_sensor_data().
+%     PidLoop = spawn(fun () -> Looping(Id, Nav,Als) end).
+all_sensor_data() ->
+    {pmod_nav, Nav, _} = node_util:get_nav(),
+    {pmod_als, Als, _} = node_util:get_als(),
+    {ok, {Id, _, _, _}} = lasp:declare(node_util:atom_to_lasp_identifier(node(),state_gset),state_gset),
+
+    Looping = fun L(I, N, A) ->
+        [Press, Temp] = gen_server:call(I, {read, alt, [press_out, temp_out]}),
+        % [MagX, MagY, MagZ] = gen_server:call(N, {read, mag, [out_x_m, out_y_m, out_z_m]}),
+        % [GyroX, GyroY, GyroZ] = gen_server:call(N, {read, acc, [out_x_g, out_y_g, out_z_g]}),
+        Mag = gen_server:call(N, {read, mag, [out_x_m, out_y_m, out_z_m]}),
+        Gyro = gen_server:call(N, {read, acc, [out_x_g, out_y_g, out_z_g]}),
+        [Raw] = gen_server:call(A, {read, raw, []}),
+        {_,{H,Mi,_}} = node_util:maybe_get_time(),
+        {ok, {_, _, _, _}} = lasp:update(I, {add, [H*60 + Mi,Raw,Press,Temp,Mag,Gyro]}, self()),
+        ?PAUSE10,
+        L(I, N, A)
+    end,
+
+    spawn(fun () ->
+        Looping(Id,Nav,Als)
+    end).
+    % F = fun() ->
+    %         % _Pid = spawn(Looping(I2,N2,A2))
+    %         Looping(Id,Nav,Als)
+    % end,
+
+
+    % F = fun (I,N,A) -> all_sensor_data(I,N,A) end,
+    % spawn(F(Id,Nav,Als))
+    % {ok, {Id, _, _, _}} = lasp:declare(node_util:atom_to_lasp_identifier(node(),state_gset)

@@ -216,7 +216,6 @@ store_state(_Rate, Id, State, Node, Self) ->
     % erlang:send_after(Rate, Self, states),
     ok.
 
-
 %% @doc Returns actual time and date if available from the webserver, or the local node time and date.
 %%
 %%      The GRiSP local time is always 1-Jan-1988::00:00:00

@@ -19,8 +19,6 @@ set_platform() ->
     _ -> os:putenv("type", "grisp")
   end.
 
-%%--------------------------------------------------------------------
-
 process(N) ->
     ?PAUSEHMIN,
     Epoch = (?HMIN) * N,
@@ -121,6 +119,17 @@ get_nav() ->
             {error, no_device, no_ref};
         {device, spi1, pmod_nav, Pid, Ref} when is_pid(Pid); is_reference(Ref) ->
             {pmod_nav, Pid, Ref};
+        _ ->
+            {error, unknown, no_ref}
+    end.
+
+get_als() ->
+    Slot = grisp:device(spi2),
+    case Slot of
+        {no_device_connected, spi1} ->
+            {error, no_device, no_ref};
+        {device, spi2, pmod_als, Pid, Ref} when is_pid(Pid); is_reference(Ref) ->
+            {pmod_als, Pid, Ref};
         _ ->
             {error, unknown, no_ref}
     end.
