@@ -243,17 +243,15 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
                                 ServerSet = sets:add_element('server3@ec2-35-180-138-155.eu-west-3.compute.amazonaws.com',Set1),
                                 PidMainReceiver = spawn(node_generic_tasks_functions_benchmark,main_server_ack_receiver,[ServerSet,FinalTime]),
                                 register(ackreceiver,PidMainReceiver),
-                                BeforeUpdate = erlang:monotonic_time(millisecond),
-                                lasp:update(node_util:atom_to_lasp_identifier(Board, state_gset), {add,{FinalTime,Result}}, self()),
-                                UpdateTime = erlang:monotonic_time(millisecond),
-                                TotalTime = UpdateTime-BeforeUpdate,
-                                logger:log(warning," time to update in millisecond ~p",[TotalTime]),
+                                {UpdateTime,_} = timer:tc(fun() -> lasp:update(node_util:atom_to_lasp_identifier(Board, state_gset), {add,{FinalTime,Result}}, self()) end),
+                                logger:log(warning," time to update in millisecond ~p",[UpdateTime]),
                                 logger:log(warning,"Update timestamp is ~p",[FinalTime]),
 
                                 receive
                                   all_acks -> logger:log(warning,"Received all acks")
                                 end,
-                                server_loop(Node,100,Cardi+1,LoopCount,NewMeasures);
+                                {ok,Dataloop} = application:get_env(node,dataloop),
+                                server_loop(Node,Dataloop,Cardi+1,LoopCount,NewMeasures);
                   true -> NewCount = DataCount - 1,
                           server_loop(Node,NewCount,Cardi,LoopCount,NewMeasures)
                 end
@@ -337,9 +335,6 @@ updater_ack_receiver(Count,LoopCount,SetName) ->
                              {ok,Result} = Read,
                              Length = length(element(2,element(4,Result))),
                              logger:log(warning,"Checking that set size corresponds to cardinality ~p -> ~p",[Length,Count]),
-                             TimeA = erlang:monotonic_time(millisecond),
-                             TotalTime = TimeA - TimeB,
-                             %logger:log(warning,"Read timestamp is ~p",[FinalTime]),
                              logger:log(warning,"=====blocking read done sending ack back to main======"),
                              NewCount = Count + 1,
                              {ackreceiver,'server2@ec2-18-130-232-107.eu-west-2.compute.amazonaws.com'} ! {Self,FinalTime,SetName},
