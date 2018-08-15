@@ -235,12 +235,11 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
                                 ComputationTimeA = erlang:monotonic_time(millisecond),
                                 Result = numerix_calculation(NewMeasures),
                                 ComputationTimeB = erlang:monotonic_time(millisecond),
-                                logger:log(warning,"Time to do the computation",[ComputationTimeB-ComputationTimeA]),
-                                Add = rand:uniform(),
-                                %{ok, {Id, _, _, _}} = hd(node_util:declare_crdts([Board])),
+                                TotalComputation = ComputationTimeB-ComputationTimeA,
+                                logger:log(warning,"Time to do the computation",[TotalComputation]),
                                 BeforeUpdate = erlang:monotonic_time(millisecond),
                                 FinalTime = maybe_utc(localtime_ms()),
-                                lasp:update(node_util:atom_to_lasp_identifier(Board, state_gset), {add, Result}, self()),
+                                lasp:update(node_util:atom_to_lasp_identifier(Board, state_gset), {add,{FinalTime,Result}}, self()),
                                 UpdateTime = erlang:monotonic_time(millisecond),
                                 TotalTime = UpdateTime-BeforeUpdate,
                                 logger:log(warning," time to update in millisecond ~p",[TotalTime]),
@@ -290,6 +289,7 @@ end.
 
 
 measure_to_map(Measures,LoopCount) ->
+  logger:log(warning,"The current list of measures is ~p",[Measures]),
   MapServer1 = maps:get(server1, Measures),
   Size = length(MapServer1),
   PreviousCount = LoopCount - 1,
