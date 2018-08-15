@@ -148,3 +148,41 @@ maps_merge(Fun, Map1, Map2) ->
      maps:fold(fun (K, V1, Map) ->
                    maps_update(K, fun (V2) -> Fun(K, V1, V2) end, V1, Map)
                end, Map2, Map1).
+
+%% @doc Returns actual time and date if available from the webserver, or the local node time and date.
+%%
+%%      The GRiSP local time is always 1-Jan-1988::00:00:00
+%%      once the board has booted. Therefore the values are irrelevant
+%%		and cannot be compared between different boards as nodes
+%%		do not boot all at the same time, or can reboot.
+%%      But if a node can fetch the actual time and date from a remote server
+%%		at least once, the local values can be used as offsets.
+% -spec maybe_get_time() -> calendar:datetime().
+-spec maybe_get_time() -> Time :: calendar:datetime().
+	% ; maybe_get_time(Arg :: term()) -> calendar:datetime().
+maybe_get_time() ->
+	{ok, RemoteHosts} = application:get_env(node, remote_hosts),
+  Webservers = maps:get(webservers, RemoteHosts),
+  % WS = hd(Webservers),
+	maybe_get_time({ok, 'ws@GrispAdhoc'}).
+
+-spec maybe_get_time(Args) -> Time :: calendar:datetime() when Args :: tuple()
+	; (Arg) -> Time :: calendar:datetime() when Arg :: atom().
+maybe_get_time({ok, WS}) ->
+	Res = rpc:call(WS, calendar, local_time, []),
+	maybe_get_time(Res);
+
+maybe_get_time(undefined) ->
+	logger:log(info, "No webserver host found in environment, local time will be used ~n"),
+	maybe_get_time(local);
+
+maybe_get_time({{Y,Mo,D},{H,Mi,S}}) ->
+	{{Y,Mo,D},{H,Mi,S}};
+
+maybe_get_time({badrpc, Reason}) ->
+	logger:log(info, "Failed to get local time from webserver ~n"),
+	logger:log(info, "Reason : ~p ~n", [Reason]),
+	maybe_get_time(local);
+
+maybe_get_time(local) ->
+	calendar:local_time().
