@@ -236,7 +236,7 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
                                 Result = numerix_calculation(NewMeasures),
                                 ComputationTimeB = erlang:monotonic_time(millisecond),
                                 TotalComputation = ComputationTimeB-ComputationTimeA,
-                                logger:log(warning,"Time to do the computation",[TotalComputation]),
+                                logger:log(warning,"Time to do the computation ~p",[TotalComputation]),
                                 BeforeUpdate = erlang:monotonic_time(millisecond),
                                 FinalTime = maybe_utc(localtime_ms()),
                                 lasp:update(node_util:atom_to_lasp_identifier(Board, state_gset), {add,{FinalTime,Result}}, self()),
