@@ -231,7 +231,7 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
       Cardi > LoopCount -> logger:log(warning,"Server loop is done");
       true ->
                 if
-                  DataCount == 1 ->
+                  DataCount == 2 ->
                                 ComputationTimeA = erlang:monotonic_time(millisecond),
                                 Result = numerix_calculation(NewMeasures),
                                 ComputationTimeB = erlang:monotonic_time(millisecond),
