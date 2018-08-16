@@ -248,7 +248,7 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
                                 logger:log(warning,"Update timestamp is ~p",[FinalTime]),
 
                                 receive
-                                  all_acks -> logger:log(warning,"Received all acks")
+                                  all_acks -> {datastream,'node@my_grisp_board_2'} ! {update},logger:log(warning,"Received all acks")
                                 end,
                                 {ok,Dataloop} = application:get_env(node,dataloop),
                                 server_loop(Node,Dataloop,Cardi+1,LoopCount,NewMeasures);
