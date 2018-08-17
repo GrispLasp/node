@@ -139,12 +139,12 @@ Time = erlang:monotonic_time(millisecond),
 % TODO: untested
 meteorological_statistics_cloudlasp(LoopCount) ->
   Self = self(),
-  logger:log(notice,"Correct Pid is ~p ~n",[Self]),
+  logger:log(warning,"Correct Pid is ~p ~n",[Self]),
   Server = node(),
-  logger:log(notice,"Task is waiting for clients to send data ~n"),
+  logger:log(warning,"Task is waiting for clients to send data ~n"),
   receive
-    {Pid,Node,connect} -> logger:log(notice,"Received connection from ~p ~n",[Node]);
-    Msg -> Node = error,logger:log(notice,"Wrong message received ~n"),Pid = 0
+    {Pid,Node,connect} -> logger:log(warning,"Received connection from ~p ~n",[Node]);
+    Msg -> Node = error,logger:log(warning,"Wrong message received ~n"),Pid = 0
   end,
   Measure = maps:new(),
   Measure1 = maps:put(server1, [], Measure),
@@ -157,7 +157,7 @@ meteorological_statistics_cloudlasp(LoopCount) ->
   Id = spawn(node_generic_tasks_functions_benchmark,server_loop_cloudlasp,[Node,1,LoopCount,Pid]),
   register(server,Id),
   Pid ! {server_up},
-  logger:log(notice,"sent ack"),
+  logger:log(warning,"sent ack"),
   meteorological_statistics_cloudlasp(LoopCount).
 
 
@@ -200,7 +200,8 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
     Cardi > LoopCount -> logger:log(warning,"Server cloudlasp done");
     true ->
               receive
-                ListData ->  ComputationTimeA = erlang:monotonic_time(millisecond),
+                ListData ->   logger:log(warning,"Doing computation on ~p",[ListData]),
+                              ComputationTimeA = erlang:monotonic_time(millisecond),
                               Result = numerix_calculation(ListData),
                               ComputationTimeB = erlang:monotonic_time(millisecond),
                               TotalComputation = ComputationTimeB-ComputationTimeA,
