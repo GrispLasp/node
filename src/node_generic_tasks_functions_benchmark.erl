@@ -300,7 +300,13 @@ measure_to_map(Measures,LoopCount) ->
   Size = length(MapServer1),
   PreviousCount = LoopCount - 1,
   if
-    Size > PreviousCount -> logger:log(warning,"This is the list of final measure: ~p",[Measures]);
+    Size > PreviousCount -> Mean1 = 'Elixir.Numerix.Statistics':mean(maps:get(server1, Measures)),
+                            Mean2 = 'Elixir.Numerix.Statistics':mean(maps:get(server2, Measures)),
+                            TotalMean = (Mean1+Mean2)/2,
+                            logger:log(warning,"Mean for server1 is ~p",[Mean1]),
+                            logger:log(warning,"Mean for server1 is ~p",[Mean2]),
+                            logger:log(warning,"total mean  is ~p",[TotalMean]),
+                            logger:log(warning,"This is the list of final measure: ~p",[Measures]);
 
 
   true ->  receive
@@ -312,7 +318,7 @@ measure_to_map(Measures,LoopCount) ->
                                                                                         server2 => maps:get(server2, Measures) ++ [Time]},
                                                                                         measure_to_map(NewMeasures,LoopCount)
                                 end;
-                        Msg -> logger:log(warning,"Wrong message received")
+                        Msg ->  logger:log(warning,"Wrong message received")
                       end
 
   end.
