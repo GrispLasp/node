@@ -137,24 +137,28 @@ Time = erlang:monotonic_time(millisecond),
 
 % ==> Send Aggregated data to the AWS Server. The server will do the computation and replication with Lasp on cloud.
 % TODO: untested
-meteorological_statistics_cloudlasp(Count) ->
+meteorological_statistics_cloudlasp(LoopCount) ->
   Self = self(),
   logger:log(notice,"Correct Pid is ~p ~n",[Self]),
   Server = node(),
   logger:log(notice,"Task is waiting for clients to send data ~n"),
   receive
-    {Node,connect} -> logger:log(notice,"Received connection from ~p ~n",[Node]);
+    {Pid,Node,connect} -> logger:log(notice,"Received connection from ~p ~n",[Node]);
     Msg -> Node = error,logger:log(notice,"Wrong message received ~n"),Pid = 0
   end,
-  State = maps:new(),
-  State1 = maps:put(press, [], State),
-  State2 = maps:put(temp, [], State1),
-  State3 = maps:put(time, [], State2),
-  Id = spawn(node_generic_tasks_functions_benchmark,server_loop,[Node,Count,State3]),
+  Measure = maps:new(),
+  Measure1 = maps:put(server1, [], Measure),
+  Measure2 = maps:put(server2, [], Measure1),
+  MeasureId = spawn(node_generic_tasks_functions_benchmark,measure_to_map,[Measure2,LoopCount]),
+  Server1 = 'server1@ec2-18-185-18-147.eu-central-1.compute.amazonaws.com',
+  Server3 = 'server3@ec2-35-180-138-155.eu-west-3.compute.amazonaws.com',
+  {connector,Server1} ! {Node},{connector,Server3} ! {Node},
+  register(measurer,MeasureId),
+  Id = spawn(node_generic_tasks_functions_benchmark,server_loop_cloudlasp,[Node,1,LoopCount,Pid]),
   register(server,Id),
-  {datastream,'node@my_grisp_board_2'} ! {server_up},
+  Pid ! {server_up},
   logger:log(notice,"sent ack"),
-  meteorological_statistics_cloudlasp(Count).
+  meteorological_statistics_cloudlasp(LoopCount).
 
 
 % ==> "Flood" raw data to the AWS server. The server will do the computation, aggregation and replication with Lasp on cloud.
@@ -165,7 +169,7 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
   Server = node(),
   logger:log(warning,"Task is waiting for clients to send data ~n"),
   receive
-    {Node,connect} -> logger:log(warning,"Received connection from ~p ~n",[Node]);
+    {Pid,Node,connect} -> logger:log(warning,"Received connection from ~p ~n",[Node]);
     Msg -> Node = error,logger:log(warning,"Wrong message received ~n"),Pid = 0
   end,
   %%CREATING MAP FOR DATA
@@ -184,41 +188,42 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
   Server3 = 'server3@ec2-35-180-138-155.eu-west-3.compute.amazonaws.com',
   {connector,Server1} ! {Node},{connector,Server3} ! {Node},
   register(measurer,MeasureId),
-  Id = spawn(node_generic_tasks_functions_benchmark,server_loop,[Node,Count,1,LoopCount,State3]),
+  Id = spawn(node_generic_tasks_functions_benchmark,server_loop_xcloudlasp,[Node,Count,1,LoopCount,State3]),
   register(server,Id),
-  {datastream,'node@my_grisp_board_2'} ! {server_up},
+  Pid ! {server_up},
   logger:log(warning,"sent ack"),
   meteorological_statistics_xcloudlasp(Count,LoopCount).
   %logger:log(notice, "Starting Meteo statistics task benchmarking for non aggregated data on lasp on cloud"),
 
-  % Must check if module is available
-  %{pmod_nav, Pid, _Ref} = node_util:get_nav(),
-  % meteo = shell:rd(meteo, {press = [], temp = []}),
-  % State = #{press => [], temp => [], time => []},
-  %State = maps:new(),
-  %State1 = maps:put(press, [], State),
-  %State2 = maps:put(temp, [], State1),
-  %State3 = maps:put(time, [], State2),
+  server_loop_cloudlasp(Board,Cardi,LoopCount,Pid) ->
+  if
+    Cardi > LoopCount -> logger:log(warning,"Server cloudlasp done");
+    true ->
+              receive
+                ListData ->  ComputationTimeA = erlang:monotonic_time(millisecond),
+                              Result = numerix_calculation(ListData),
+                              ComputationTimeB = erlang:monotonic_time(millisecond),
+                              TotalComputation = ComputationTimeB-ComputationTimeA,
+                              logger:log(warning,"Time to do the computation ~p",[TotalComputation]),
+                              FinalTime = maybe_utc(localtime_ms()),
+                              Set = sets:new(),
+                              Set1 = sets:add_element('server1@ec2-18-185-18-147.eu-central-1.compute.amazonaws.com',Set),
+                              ServerSet = sets:add_element('server3@ec2-35-180-138-155.eu-west-3.compute.amazonaws.com',Set1),
+                              PidMainReceiver = spawn(node_generic_tasks_functions_benchmark,main_server_ack_receiver,[ServerSet,FinalTime]),
+                              register(ackreceiver,PidMainReceiver),
+                              {UpdateTime,_} = timer:tc(fun() -> lasp:update(node_util:atom_to_lasp_identifier(Board, state_gset), {add,{FinalTime,Result}}, self()) end),
+                              logger:log(warning," time to update in millisecond ~p",[UpdateTime]),
+                              logger:log(warning,"Update timestamp is ~p",[FinalTime]),
 
-  %AWS_Server = maps:get(main_aws_server, node_config:get(remote_hosts)),
-  %FoldFun = fun
-  %    (Elem, _Map) when is_integer(Elem)->
-  %        timer:sleep(SampleInterval),
-  %        T = node_stream_worker:maybe_get_time(),
-  %        % T = calendar:local_time(),lasp:read(node_util:atom_to_lasp_identifier(Node, state_gset), {cardinality, Cardinality}),
+                            receive
+                              all_acks -> Pid ! {update},logger:log(warning,"Received all acks")
+                            end,
 
-  %        [Pr, Tmp] = gen_server:call(Pid, {read, alt, [press_out, temp_out], #{}}),
-  %        % [Pr, Tmp] = [1000.234, 29.55555],
-  %        NewValues = #{press => Pr, temp => Tmp, time => T},
-  %        {ok, Result} = rpc:call(AWS_Server, node_client, receive_meteo_data, [{node(), NewValues, SampleCount}])
-  %end,                    Spawned = whereis(ackreceiver),
+                            server_loop(Board,Cardi+1,LoopCount,Pid)
+              end
+  end.
 
-  %M = lists:foldl(FoldFun, State3, lists:seq(1, SampleCount)).
-
-  %TODO: Wait for benchmark results from lasp:read(node_util:atom_to_lasp_identifier(Node, state_gset), {cardinality, Cardinality}),
-
-
-  server_loop(Node,DataCount,Cardi,LoopCount,Measures) ->
+  server_loop_xcloudlasp(Node,DataCount,Cardi,LoopCount,Measures) ->
     receive
       Data -> {Board,Temp,Press,T} = Data,
       logger:log(warning,"Data received by the server");
