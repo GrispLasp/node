@@ -249,7 +249,7 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
                                 ServerSet = sets:add_element('server3@ec2-35-180-138-155.eu-west-3.compute.amazonaws.com',Set1),
                                 PidMainReceiver = spawn(node_generic_tasks_functions_benchmark,main_server_ack_receiver,[ServerSet,FinalTime]),
                                 register(ackreceiver,PidMainReceiver),
-                                {UpdateTime,_} = timer:tc(fun() -> lasp:update(node_util:atom_to_lasp_identifier(Board, state_gset), {add,{FinalTime,Result}}, self()) end),
+                                lasp:update(node_util:atom_to_lasp_identifier(Board, state_gset), {add,{FinalTime,Result}}, self()),
                                 logger:log(warning," time to update in millisecond ~p",[UpdateTime]),
                                 logger:log(warning,"Update timestamp is ~p",[FinalTime]),
 
@@ -282,8 +282,8 @@ numerix_calculation(Measures) ->
    logger:log(warning,"Current size for server set in main server ack is ~p",[Size]),
   if
   Size > 0 -> receive
-                      {Server,Time,Node} ->
-                                              ConvergTime = Time - UpdateTime,
+                      {Server,Time,Node} ->   NowTime =maybe_utc(localtime_ms()),
+                                              ConvergTime = NowTime - UpdateTime,
                                               logger:log(warning,"=====Server ~p needed ~p milli to converge set: ~p===== ",[Server,ConvergTime,Node]),
                                               NewSet = sets:del_element(Server,ServerSet),
                                               measurer ! {Server,ConvergTime},
