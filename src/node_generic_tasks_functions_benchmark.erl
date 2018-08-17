@@ -212,8 +212,8 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
                               ServerSet = sets:add_element('server3@ec2-35-180-138-155.eu-west-3.compute.amazonaws.com',Set1),
                               PidMainReceiver = spawn(node_generic_tasks_functions_benchmark,main_server_ack_receiver,[ServerSet,FinalTime]),
                               register(ackreceiver,PidMainReceiver),
-                              {UpdateTime,_} = timer:tc(fun() -> lasp:update(node_util:atom_to_lasp_identifier(Board, state_gset), {add,{FinalTime,Result}}, self()) end),
-                              logger:log(warning," time to update in millisecond ~p",[UpdateTime]),
+                              lasp:update(node_util:atom_to_lasp_identifier(Board, state_gset), {add,{FinalTime,Result}}, self()),
+                            %  logger:log(warning," time to update in millisecond ~p",[UpdateTime]),
                               logger:log(warning,"Update timestamp is ~p",[FinalTime]),
 
                             receive
@@ -250,7 +250,7 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
                                 PidMainReceiver = spawn(node_generic_tasks_functions_benchmark,main_server_ack_receiver,[ServerSet,FinalTime]),
                                 register(ackreceiver,PidMainReceiver),
                                 lasp:update(node_util:atom_to_lasp_identifier(Board, state_gset), {add,{FinalTime,Result}}, self()),
-                                logger:log(warning," time to update in millisecond ~p",[UpdateTime]),
+                                %logger:log(warning," time to update in millisecond ~p",[UpdateTime]),
                                 logger:log(warning,"Update timestamp is ~p",[FinalTime]),
 
                                 receive
