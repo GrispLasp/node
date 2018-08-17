@@ -219,7 +219,7 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
                               all_acks -> Pid ! {update},logger:log(warning,"Received all acks")
                             end,
 
-                            server_loop(Board,Cardi+1,LoopCount,Pid)
+                            server_loop_cloudlasp(Board,Cardi+1,LoopCount,Pid)
               end
   end.
 
@@ -256,10 +256,10 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
                                   all_acks -> {datastream,'node@my_grisp_board_2'} ! {update},logger:log(warning,"Received all acks")
                                 end,
                                 {ok,Dataloop} = application:get_env(node,dataloop),
-                                server_loop(Node,Dataloop,Cardi+1,LoopCount,NewMeasures);
+                                server_loop_xcloudlasp(Node,Dataloop,Cardi+1,LoopCount,NewMeasures);
                   true -> NewCount = DataCount - 1,
                           logger:log(warning,"New datacount is ~p",[NewCount]),
-                          server_loop(Node,NewCount,Cardi,LoopCount,NewMeasures)
+                          server_loop_xcloudlasp(Node,NewCount,Cardi,LoopCount,NewMeasures)
                 end
       end.
 
