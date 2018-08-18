@@ -257,10 +257,10 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
                                   all_acks -> Pid ! {update},logger:log(warning,"Received all acks")
                                 end,
                                 {ok,Dataloop} = application:get_env(node,dataloop),
-                                server_loop_xcloudlasp(Node,Dataloop,Cardi+1,LoopCount,NewMeasures);
+                                server_loop_xcloudlasp(Node,Dataloop,Cardi+1,LoopCount,NewMeasures,Pid);
                   true -> NewCount = DataCount - 1,
                           logger:log(warning,"New datacount is ~p",[NewCount]),
-                          server_loop_xcloudlasp(Node,NewCount,Cardi,LoopCount,NewMeasures)
+                          server_loop_xcloudlasp(Node,NewCount,Cardi,LoopCount,NewMeasures,Pid)
                 end
       end.
 
