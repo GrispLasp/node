@@ -188,7 +188,7 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
   Server3 = 'server3@ec2-35-180-138-155.eu-west-3.compute.amazonaws.com',
   {connector,Server1} ! {Node},{connector,Server3} ! {Node},
   register(measurer,MeasureId),
-  Id = spawn(node_generic_tasks_functions_benchmark,server_loop_xcloudlasp,[Node,Count,1,LoopCount,State3]),
+  Id = spawn(node_generic_tasks_functions_benchmark,server_loop_xcloudlasp,[Node,Count,1,LoopCount,State3,Pid]),
   register(server,Id),
   Pid ! {server_up},
   logger:log(warning,"sent ack"),
@@ -224,7 +224,7 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
               end
   end.
 
-  server_loop_xcloudlasp(Node,DataCount,Cardi,LoopCount,Measures) ->
+  server_loop_xcloudlasp(Node,DataCount,Cardi,LoopCount,Measures,Pid) ->
     receive
       Data -> {Board,Temp,Press,T} = Data,
       logger:log(warning,"Data received by the server");
@@ -237,7 +237,7 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
       Cardi > LoopCount -> logger:log(warning,"Server loop is done");
       true ->
                 if
-                  DataCount == 2 ->
+                  DataCount == 0 ->
                                 ComputationTimeA = erlang:monotonic_time(millisecond),
                                 Result = numerix_calculation(NewMeasures),
                                 ComputationTimeB = erlang:monotonic_time(millisecond),
@@ -254,7 +254,7 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
                                 logger:log(warning,"Update timestamp is ~p",[FinalTime]),
 
                                 receive
-                                  all_acks -> {datastream,'node@my_grisp_board_2'} ! {update},logger:log(warning,"Received all acks")
+                                  all_acks -> Pid ! {update},logger:log(warning,"Received all acks")
                                 end,
                                 {ok,Dataloop} = application:get_env(node,dataloop),
                                 server_loop_xcloudlasp(Node,Dataloop,Cardi+1,LoopCount,NewMeasures);
