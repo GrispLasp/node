@@ -155,8 +155,8 @@ meteorological_statistics_cloudlasp(LoopCount) ->
   MeasurerName = list_to_atom(lists:append(atom_to_list(measurer),atom_to_list(Node))),
   logger:log(warning,"Starting the following measurer ~p",[MeasurerName]),
   register(MeasurerName,MeasureId),
-  rpc:call(Server1,node_generic_tasks_functions_benchmark,updater_ack_receiver,[1,LoopCount,Node]),
-  rpc:call(Server3,node_generic_tasks_functions_benchmark,updater_ack_receiver,[1,LoopCount,Node]),
+  spawn(fun() -> rpc:call(Server1,node_generic_tasks_functions_benchmark,updater_ack_receiver,[1,LoopCount,Node]) end),
+  spawn(fun() -> rpc:call(Server3,node_generic_tasks_functions_benchmark,updater_ack_receiver,[1,LoopCount,Node]) end),
   Id = spawn(node_generic_tasks_functions_benchmark,server_loop_cloudlasp,[Node,1,LoopCount,Pid]),
   ServerName = list_to_atom(lists:append(atom_to_list(server),atom_to_list(Node))),
   logger:log(warning,"Starting the following server ~p",[ServerName]),
@@ -197,8 +197,8 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
   logger:log(warning,"Starting the following measurer ~p",[MeasurerName]),
   register(MeasurerName,MeasureId),
   %%LUNCHING CRDT UPDATER ON BACKUPS
-  rpc:call(Server1,node_generic_tasks_functions_benchmark,updater_ack_receiver,[1,LoopCount,Node]),
-  rpc:call(Server3,node_generic_tasks_functions_benchmark,updater_ack_receiver,[1,LoopCount,Node]),
+  spawn(fun() -> rpc:call(Server1,node_generic_tasks_functions_benchmark,updater_ack_receiver,[1,LoopCount,Node]) end),
+  spawn(fun() -> rpc:call(Server3,node_generic_tasks_functions_benchmark,updater_ack_receiver,[1,LoopCount,Node]) end),
   %%STARTING SERVER LOOP TO RECEIVE DATA
   Id = spawn(node_generic_tasks_functions_benchmark,server_loop_xcloudlasp,[Node,Count,1,LoopCount,State3,Pid]),
   ServerName = list_to_atom(lists:append(atom_to_list(server),atom_to_list(Node))),
