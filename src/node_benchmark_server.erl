@@ -80,7 +80,7 @@ handle_info({benchmark_meteo_task, LoopCount,DataCount}, State) ->
 
       end
    end }),
-
+RunningTask = node_generic_tasks_worker:start_task(TaskName),
   {noreply, State};
 
 handle_info(Msg, State) ->
