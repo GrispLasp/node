@@ -155,8 +155,9 @@ meteorological_statistics_cloudlasp(LoopCount) ->
   MeasurerName = list_to_atom(lists:append(atom_to_list(measurer),atom_to_list(Node))),
   logger:log(warning,"Starting the following measurer ~p",[MeasurerName]),
   register(MeasurerName,MeasureId),
-  spawn(fun() -> rpc:call(Server1,node_generic_tasks_functions_benchmark,updater_ack_receiver,[1,LoopCount,Node]) end),
-  spawn(fun() -> rpc:call(Server3,node_generic_tasks_functions_benchmark,updater_ack_receiver,[1,LoopCount,Node]) end),
+  RECV = fun() -> node_generic_tasks_functions_benchmark:updater_ack_receiver(1,LoopCount,Node) end,
+  spawn(Server1,RECV),
+  spawn(Server3,RECV),
   Id = spawn(node_generic_tasks_functions_benchmark,server_loop_cloudlasp,[Node,1,LoopCount,Pid]),
   ServerName = list_to_atom(lists:append(atom_to_list(server),atom_to_list(Node))),
   logger:log(warning,"Starting the following server ~p",[ServerName]),
@@ -197,8 +198,9 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
   logger:log(warning,"Starting the following measurer ~p",[MeasurerName]),
   register(MeasurerName,MeasureId),
   %%LUNCHING CRDT UPDATER ON BACKUPS
-  spawn(fun() -> rpc:call(Server1,node_generic_tasks_functions_benchmark,updater_ack_receiver,[1,LoopCount,Node]) end),
-  spawn(fun() -> rpc:call(Server3,node_generic_tasks_functions_benchmark,updater_ack_receiver,[1,LoopCount,Node]) end),
+  RECV = fun() -> node_generic_tasks_functions_benchmark:updater_ack_receiver(1,LoopCount,Node) end,
+  spawn(Server1,RECV),
+  spawn(Server3,RECV),
   %%STARTING SERVER LOOP TO RECEIVE DATA
   Id = spawn(node_generic_tasks_functions_benchmark,server_loop_xcloudlasp,[Node,Count,1,LoopCount,State3,Pid]),
   ServerName = list_to_atom(lists:append(atom_to_list(server),atom_to_list(Node))),
@@ -362,7 +364,8 @@ updater_ack_receiver(Count,LoopCount,SetName) ->
                              logger:log(warning,"Checking that set size corresponds to cardinality ~p -> ~p",[Length,Count]),
                              logger:log(warning,"=====blocking read done sending ack back to main======"),
                              NewCount = Count + 1,
-                             {ackreceiver,'server2@ec2-18-130-232-107.eu-west-2.compute.amazonaws.com'} ! {Self,FinalTime,SetName},
+                             ReceiverName = ,
+                             {list_to_atom(lists:append(atom_to_list(ackreceiver),atom_to_list(SetName))),'server2@ec2-18-130-232-107.eu-west-2.compute.amazonaws.com'} ! {Self,FinalTime,SetName},
                              updater_ack_receiver(NewCount,LoopCount,SetName)
   end.
 
