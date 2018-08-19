@@ -227,7 +227,7 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
   server_loop_xcloudlasp(Node,DataCount,Cardi,LoopCount,Measures,Pid) ->
     receive
       Data -> {Board,Temp,Press,T} = Data,
-      logger:log(warning,"Data received by the server");
+      %logger:log(warning,"Data received by the server");
       true -> Press = error, Temp = error, T = error, Board = error
     end,
     NewMeasures = #{press => maps:get(press, Measures) ++ [Press],
@@ -259,7 +259,7 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
                                 {ok,Dataloop} = application:get_env(node,dataloop),
                                 server_loop_xcloudlasp(Node,Dataloop,Cardi+1,LoopCount,NewMeasures,Pid);
                   true -> NewCount = DataCount - 1,
-                          logger:log(warning,"New datacount is ~p",[NewCount]),
+                          %logger:log(warning,"New datacount is ~p",[NewCount]),
                           server_loop_xcloudlasp(Node,NewCount,Cardi,LoopCount,NewMeasures,Pid)
                 end
       end.
