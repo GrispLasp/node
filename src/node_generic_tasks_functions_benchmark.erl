@@ -226,7 +226,7 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
 
   server_loop_xcloudlasp(Node,DataCount,Cardi,LoopCount,Measures,Pid) ->
     receive
-      Data -> {Board,Temp,Press,T} = Data,
+      Data -> {Board,Temp,Press,T} = Data;
       %logger:log(warning,"Data received by the server");
       true -> Press = error, Temp = error, T = error, Board = error
     end,
