@@ -364,7 +364,6 @@ updater_ack_receiver(Count,LoopCount,SetName) ->
                              logger:log(warning,"Checking that set size corresponds to cardinality ~p -> ~p",[Length,Count]),
                              logger:log(warning,"=====blocking read done sending ack back to main======"),
                              NewCount = Count + 1,
-                             ReceiverName = ,
                              {list_to_atom(lists:append(atom_to_list(ackreceiver),atom_to_list(SetName))),'server2@ec2-18-130-232-107.eu-west-2.compute.amazonaws.com'} ! {Self,FinalTime,SetName},
                              updater_ack_receiver(NewCount,LoopCount,SetName)
   end.
