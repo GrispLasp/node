@@ -149,13 +149,18 @@ meteorological_statistics_cloudlasp(LoopCount) ->
   Measure = maps:new(),
   Measure1 = maps:put(server1, [], Measure),
   Measure2 = maps:put(server2, [], Measure1),
-  MeasureId = spawn(node_generic_tasks_functions_benchmark,measure_to_map,[Measure2,LoopCount]),
+  MeasureId = spawn(node_generic_tasks_functions_benchmark,measure_to_map,[Measure2,LoopCount,Node]),
   Server1 = 'server1@ec2-18-185-18-147.eu-central-1.compute.amazonaws.com',
   Server3 = 'server3@ec2-35-180-138-155.eu-west-3.compute.amazonaws.com',
-  {connector,Server1} ! {Node},{connector,Server3} ! {Node},
-  register(measurer,MeasureId),
+  MeasurerName = list_to_atom(lists:append(atom_to_list(measurer),atom_to_list(Node))),
+  logger:log(warning,"Starting the following measurer ~p",[MeasurerName]),
+  register(MeasurerName,MeasureId),
+  rpc:call(Server1,node_generic_tasks_functions_benchmark,updater_ack_receiver,[1,LoopCount,Node]),
+  rpc:call(Server3,node_generic_tasks_functions_benchmark,updater_ack_receiver,[1,LoopCount,Node]),
   Id = spawn(node_generic_tasks_functions_benchmark,server_loop_cloudlasp,[Node,1,LoopCount,Pid]),
-  register(server,Id),
+  ServerName = list_to_atom(lists:append(atom_to_list(server),atom_to_list(Node))),
+  logger:log(warning,"Starting the following server ~p",[ServerName]),
+  register(ServerName,Id),
   Pid ! {server_up},
   logger:log(warning,"sent ack"),
   meteorological_statistics_cloudlasp(LoopCount).
@@ -181,21 +186,30 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
   Measure = maps:new(),
   Measure1 = maps:put(server1, [], Measure),
   Measure2 = maps:put(server2, [], Measure1),
+  %%DECLARING THE CRDT
   logger:log(warning,"Declaring the following set: ~p",[Node]),
   lasp:declare(node_util:atom_to_lasp_identifier(Node, state_gset),state_gset),
-  MeasureId = spawn(node_generic_tasks_functions_benchmark,measure_to_map,[Measure2,LoopCount]),
+  %%SPAWNING MEASURE FOR THIS SET
+  MeasureId = spawn(node_generic_tasks_functions_benchmark,measure_to_map,[Measure2,LoopCount,Node]),
   Server1 = 'server1@ec2-18-185-18-147.eu-central-1.compute.amazonaws.com',
   Server3 = 'server3@ec2-35-180-138-155.eu-west-3.compute.amazonaws.com',
-  {connector,Server1} ! {Node},{connector,Server3} ! {Node},
-  register(measurer,MeasureId),
+  MeasurerName = list_to_atom(lists:append(atom_to_list(measurer),atom_to_list(Node))),
+  logger:log(warning,"Starting the following measurer ~p",[MeasurerName]),
+  register(MeasurerName,MeasureId),
+  %%LUNCHING CRDT UPDATER ON BACKUPS
+  rpc:call(Server1,node_generic_tasks_functions_benchmark,updater_ack_receiver,[1,LoopCount,Node]),
+  rpc:call(Server3,node_generic_tasks_functions_benchmark,updater_ack_receiver,[1,LoopCount,Node]),
+  %%STARTING SERVER LOOP TO RECEIVE DATA
   Id = spawn(node_generic_tasks_functions_benchmark,server_loop_xcloudlasp,[Node,Count,1,LoopCount,State3,Pid]),
-  register(server,Id),
+  ServerName = list_to_atom(lists:append(atom_to_list(server),atom_to_list(Node))),
+  logger:log(warning,"Starting the following server ~p",[ServerName]),
+  register(ServerName,Id),
   Pid ! {server_up},
   logger:log(warning,"sent ack"),
   meteorological_statistics_xcloudlasp(Count,LoopCount).
   %logger:log(notice, "Starting Meteo statistics task benchmarking for non aggregated data on lasp on cloud"),
 
-  server_loop_cloudlasp(Board,Cardi,LoopCount,Pid) ->
+  server_loop_cloudlasp(Node,Cardi,LoopCount,Pid) ->
   if
     Cardi > LoopCount -> logger:log(warning,"Server cloudlasp done");
     true ->
@@ -210,9 +224,10 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
                               Set = sets:new(),
                               Set1 = sets:add_element('server1@ec2-18-185-18-147.eu-central-1.compute.amazonaws.com',Set),
                               ServerSet = sets:add_element('server3@ec2-35-180-138-155.eu-west-3.compute.amazonaws.com',Set1),
-                              PidMainReceiver = spawn(node_generic_tasks_functions_benchmark,main_server_ack_receiver,[ServerSet,FinalTime]),
-                              register(ackreceiver,PidMainReceiver),
-                              lasp:update(node_util:atom_to_lasp_identifier(Board, state_gset), {add,{FinalTime,Result}}, self()),
+                              PidMainReceiver = spawn(node_generic_tasks_functions_benchmark,main_server_ack_receiver,[ServerSet,FinalTime,Node]),
+                              ReceiverName = list_to_atom(lists:append(atom_to_list(ackreceiver),atom_to_list(Node))),
+                              register(ReceiverName,PidMainReceiver),
+                              lasp:update(node_util:atom_to_lasp_identifier(Node, state_gset), {add,{FinalTime,Result}}, self()),
                             %  logger:log(warning," time to update in millisecond ~p",[UpdateTime]),
                               logger:log(warning,"Update timestamp is ~p",[FinalTime]),
 
@@ -220,7 +235,7 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
                               all_acks -> Pid ! {update},logger:log(warning,"Received all acks")
                             end,
 
-                            server_loop_cloudlasp(Board,Cardi+1,LoopCount,Pid)
+                            server_loop_cloudlasp(Node,Cardi+1,LoopCount,Pid)
               end
   end.
 
@@ -247,8 +262,9 @@ meteorological_statistics_xcloudlasp(Count,LoopCount) ->
                                 Set = sets:new(),
                                 Set1 = sets:add_element('server1@ec2-18-185-18-147.eu-central-1.compute.amazonaws.com',Set),
                                 ServerSet = sets:add_element('server3@ec2-35-180-138-155.eu-west-3.compute.amazonaws.com',Set1),
-                                PidMainReceiver = spawn(node_generic_tasks_functions_benchmark,main_server_ack_receiver,[ServerSet,FinalTime]),
-                                register(ackreceiver,PidMainReceiver),
+                                PidMainReceiver = spawn(node_generic_tasks_functions_benchmark,main_server_ack_receiver,[ServerSet,FinalTime,Node]),
+                                ReceiverName = list_to_atom(lists:append(atom_to_list(ackreceiver),atom_to_list(Node))),
+                                register(ReceiverName,PidMainReceiver),
                                 lasp:update(node_util:atom_to_lasp_identifier(Board, state_gset), {add,{FinalTime,Result}}, self()),
                                 %logger:log(warning," time to update in millisecond ~p",[UpdateTime]),
                                 logger:log(warning,"Update timestamp is ~p",[FinalTime]),
@@ -277,7 +293,7 @@ numerix_calculation(Measures) ->
 
 
 
- main_server_ack_receiver(ServerSet,UpdateTime) ->
+ main_server_ack_receiver(ServerSet,UpdateTime,Node) ->
    Size = sets:size(ServerSet),
    logger:log(warning,"Current size for server set in main server ack is ~p",[Size]),
   if
@@ -286,15 +302,16 @@ numerix_calculation(Measures) ->
                                               ConvergTime = NowTime - UpdateTime,
                                               logger:log(warning,"=====Server ~p needed ~p milli to converge set: ~p===== ",[Server,ConvergTime,Node]),
                                               NewSet = sets:del_element(Server,ServerSet),
-                                              measurer ! {Server,ConvergTime},
-                                              main_server_ack_receiver(NewSet,UpdateTime);
+                                              MeasurerName = list_to_atom(lists:append(atom_to_list(measurer),atom_to_list(Node))),
+                                              MeasurerName ! {Server,ConvergTime},
+                                              main_server_ack_receiver(NewSet,UpdateTime,Node);
                       Meg -> error
                     end;
   true -> server ! all_acks,logger:log(warning,"=====Finish updating=====")
 end.
 
 
-measure_to_map(Measures,LoopCount) ->
+measure_to_map(Measures,LoopCount,Node) ->
   logger:log(warning,"The current list of measures is ~p",[Measures]),
   MapServer1 = maps:get(server1, Measures),
   Size = length(MapServer1),
@@ -303,8 +320,8 @@ measure_to_map(Measures,LoopCount) ->
     Size > PreviousCount -> Mean1 = 'Elixir.Numerix.Statistics':mean(maps:get(server1, Measures)),
                             Mean2 = 'Elixir.Numerix.Statistics':mean(maps:get(server2, Measures)),
                             TotalMean = (Mean1+Mean2)/2,
-                            logger:log(warning,"Mean for server1 is ~p",[Mean1]),
-                            logger:log(warning,"Mean for server1 is ~p",[Mean2]),
+                            logger:log(warning,"Mean for set ~p server1 is ~p",[Node,Mean1]),
+                            logger:log(warning,"Mean for set ~p server2 is ~p",[Node,Mean2]),
                             logger:log(warning,"total mean  is ~p",[TotalMean]),
                             logger:log(warning,"This is the list of final measure: ~p",[Measures]);
 
@@ -313,10 +330,10 @@ measure_to_map(Measures,LoopCount) ->
               {Server,Time} ->  case Server of
                     'server1@ec2-18-185-18-147.eu-central-1.compute.amazonaws.com' ->  NewMeasures = #{server1 => maps:get(server1, Measures) ++ [Time],
                                                                                         server2 => maps:get(server2, Measures)},
-                                                                                        measure_to_map(NewMeasures,LoopCount);
+                                                                                        measure_to_map(NewMeasures,LoopCount,Node);
                     'server3@ec2-35-180-138-155.eu-west-3.compute.amazonaws.com' -> NewMeasures = #{server1 => maps:get(server1, Measures),
                                                                                         server2 => maps:get(server2, Measures) ++ [Time]},
-                                                                                        measure_to_map(NewMeasures,LoopCount)
+                                                                                        measure_to_map(NewMeasures,LoopCount,Node)
                                 end;
                         Msg ->  logger:log(warning,"Wrong message received")
                       end
@@ -330,12 +347,7 @@ measure_to_map(Measures,LoopCount) ->
 
 updater_ack_receiver(Count,LoopCount,SetName) ->
   Self = node(),
-  if
-    Count < 1 -> receive
-                  {Node} -> NewSetName = Node,logger:log(warning,"Ready to update set ~p",[NewSetName]),updater_ack_receiver(Count+1,LoopCount,NewSetName);
-                  Msg -> NewSetName = false
-                end;
-      true -> if
+   if
                  Count > LoopCount -> logger:log(warning,"function is over cardinality of ~p reacher",[LoopCount]);
                   true ->
                              TimeB = erlang:monotonic_time(millisecond),
@@ -352,7 +364,6 @@ updater_ack_receiver(Count,LoopCount,SetName) ->
                              NewCount = Count + 1,
                              {ackreceiver,'server2@ec2-18-130-232-107.eu-west-2.compute.amazonaws.com'} ! {Self,FinalTime,SetName},
                              updater_ack_receiver(NewCount,LoopCount,SetName)
-                  end
   end.
 
 localtime_ms() ->
