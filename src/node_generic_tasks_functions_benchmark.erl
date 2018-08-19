@@ -309,7 +309,7 @@ numerix_calculation(Measures) ->
                                               main_server_ack_receiver(NewSet,UpdateTime,Node);
                       Meg -> error
                     end;
-  true -> server ! all_acks,logger:log(warning,"=====Finish updating=====")
+  true -> list_to_atom(lists:append(atom_to_list(server),atom_to_list(Node))) ! all_acks,logger:log(warning,"=====Finish updating=====")
 end.
 
 
