@@ -61,10 +61,10 @@ handle_info({full_ping}, CurrentList) ->
 	      [Time / 1000000]),
     logger:log(notice, "=== Nodes that answered back ~p ===~n",
 	      [PingedNodes]),
-    {noreply, PingedNodes, 60000};
+    {noreply, PingedNodes, 30000};
 handle_info(timeout, CurrentList) ->
     logger:log(info, "=== Timeout of full ping, restarting "
-	      "after 90s ===~n"),
+	      "after 30s ===~n"),
     T1 = os:timestamp(),
     PingedNodes = ping(),
     T2 = os:timestamp(),
@@ -73,7 +73,7 @@ handle_info(timeout, CurrentList) ->
 	      [Time / 1000000]),
     logger:log(notice, "=== Nodes that answered back ~p ===~n",
 	      [PingedNodes]),
-    {noreply, PingedNodes, 180000};
+    {noreply, PingedNodes, 30000};
 handle_info(Msg, CurrentList) ->
     logger:log(info, "=== Unknown message: ~p~n", [Msg]),
     {noreply, CurrentList}.
@@ -106,16 +106,15 @@ ping() ->
 
 		% List = Remotes,
 
-		List = (?BOARDS((?DAN))),
-    % List = [node@GrispAdhoc,node2@GrispAdhoc],
-		% List =  (?BOARDS(?ALL)) ++ Remotes,
+		% List = (?BOARDS((?ALL))),
+		List =  (?BOARDS(?DAN)) ++ Remotes,
     ListWithoutSelf = lists:delete(node(), List),
 		lists:foldl(fun (Node, Acc) ->
 			case net_adm:ping(Node) of
 				pong ->
 					IsARemote = lists:member(Node, Remotes),
 					if IsARemote == true ->
-						logger:log(info, "=== Node ~p is an aws server", [Node]),
+						logger:log(info, "=== Node ~p is a webserver", [Node]),
 						Acc ++ [Node];
 					true ->
 						logger:log(info, "=== Attempting to join the node ~p with lasp", [Node]),

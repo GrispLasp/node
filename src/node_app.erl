@@ -26,6 +26,7 @@
 -export([laspread/3]).
 -export([add_task_meteo_union/0]).
 -export([add_task_meteo/0]).
+-export([add_task_data/0]).
 
 
 
@@ -63,7 +64,7 @@ start(_StartType, _StartArgs) ->
     % node_generic_tasks_worker:start_task(tasknav),
 
 
-    {_Task, _Targets, _Fun, _} = add_task_data(),
+    % {_Task, _Targets, _Fun, _} = add_task_data(),
     % {_Task, _Targets, _Fun, _} = add_task_meteo(),
     % ?PAUSE10,
     % {_Task, _Targets, _Fun, _} = add_task_meteo_union(),
@@ -113,6 +114,7 @@ start_timed_apps() ->
               "is approximately ~p seconds ~n",
               [Started, Time]).
 
+
 %%====================================================================
 %% Useful snippets
 %%====================================================================
@@ -123,10 +125,8 @@ add_task1() ->
     node_generic_tasks_worker:start_task(task1).
 
 add_task_data() ->
-    {pmod_nav, Nav, _} = node_util:get_nav(),
-    {pmod_als, Als, _} = node_util:get_als(),
-    node_generic_tasks_server:add_task({taskdata, all, fun () -> node_generic_tasks_functions:all_sensor_data(Nav, Als) end }),
-    node_generic_tasks_worker:start_task(taskdata).
+    node_generic_tasks_server:add_task({taskdata, all, fun () -> node_generic_tasks_functions:all_sensor_data(0) end }).
+    % node_generic_tasks_worker:start_task(taskdata).
 
 add_task_meteo() ->
     % SampleCount = 30,

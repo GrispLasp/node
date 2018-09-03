@@ -22,13 +22,11 @@ meteorological_statistics_grisplasp(LoopCount, SampleCount, SampleInterval) ->
     % (Elem, AccIn) when is_integer(Elem) andalso is_map(AccIn) ->
     FoldFun =
         fun (Elem, AccIn) ->
-            % timer:sleep(SampleInterval),
-            % T = node_stream_worker:maybe_get_time(),
+            timer:sleep(SampleInterval),
+            % T = node_util:maybe_get_time(),
             % T = calendar:local_time(), % Replace by erlang:monotonic_time(second) to reduce size
-            % T = erlang:monotonic_time(second),
             [Pr, Tmp] = gen_server:call(Pid, {read, alt, [press_out, temp_out], #{}}),
             % logger:log(notice, "Getting data from nav sensor pr: ~p tmp: ~p", [Pr, Tmp]),
-            % [Pr, Tmp] = [1000.234, 29.55555],
             #{press => [Pr] ++ maps:get(press, AccIn),
             temp => [Tmp] ++ maps:get(temp, AccIn),
             time => [erlang:monotonic_time(second)] ++ maps:get(time, AccIn)}
@@ -37,10 +35,7 @@ meteorological_statistics_grisplasp(LoopCount, SampleCount, SampleInterval) ->
     M = lists:foldl(FoldFun, MeteoMap, SampleSeq),
     % logger:log(notice, "Done Sampling data"),
 
-
-
     T1Computation = erlang:monotonic_time(millisecond),
-    % timer:sleep(1500),
 
     [Pressures, Temperatures, Epochs] = maps:values(M),
     Result = #{measures => lists:zip3(Epochs, Pressures, Temperatures),
@@ -52,19 +47,13 @@ meteorological_statistics_grisplasp(LoopCount, SampleCount, SampleInterval) ->
 
     T2Computation = erlang:monotonic_time(millisecond),
     lasp:update(node_util:atom_to_lasp_identifier(node(), state_gset), {add, Result}, self()),
-    % lasp:update(node_util:atom_to_lasp_identifier(node(), state_gset), {add, {T1Computation, T2Computation}}, self()),
 
     Cardinality = LoopCount-LoopCountRemaining+1,
     ComputationTime = T2Computation - T1Computation,
     NewAcc = maps:put(Cardinality, {T2Computation, ComputationTime}, AccComputations),
+
     if LoopCountRemaining > 1 ->
-      % ShouldGC = (LoopCountRemaining rem 10),
-      % if ShouldGC == 0 ->
-      %   erlang:garbage_collect(),
-      %   MSF(LoopCountRemaining-1, NewAcc);
-      % true ->
-          MSF(LoopCountRemaining-1, NewAcc);
-      % end;
+      MSF(LoopCountRemaining-1, NewAcc);
     true ->
       timer:sleep(30000), % Give time to the CAF process to finish receiving acks
       convergence_acknowledgement ! {done, NewAcc}
@@ -171,83 +160,3 @@ meteorological_statistics_grisplasp(LoopCount, SampleCount, SampleInterval) ->
         exit(PidCAF, kill),
         exit(PidMSF, kill)
    end.
-
-% ==> Send Aggregated data to the AWS Server. The server will do the computation and replication with Lasp on cloud.
-% TODO: untested
-meteorological_statistics_cloudlasp(SampleCount, SampleInterval) ->
-
-  logger:log(notice, "Starting Meteo statistics task benchmarking for aggregated data on lasp on cloud"),
-
-  % Must check if module is available
-  {pmod_nav, Pid, _Ref} = node_util:get_nav(),
-  % meteo = shell:rd(meteo, {press = [], temp = []}),
-  % State = #{press => [], temp => [], time => []},
-  State = maps:new(),
-  State1 = maps:put(press, [], State),
-  State2 = maps:put(temp, [], State1),
-  State3 = maps:put(time, [], State2),
-
-  FoldFun = fun
-      (Elem, AccIn) when is_integer(Elem) andalso is_map(AccIn) ->
-          timer:sleep(SampleInterval),
-          T = node_stream_worker:maybe_get_time(),
-          % T = calendar:local_time(),
-          [Pr, Tmp] = gen_server:call(Pid, {read, alt, [press_out, temp_out], #{}}),
-          % [Pr, Tmp] = [1000.234, 29.55555],
-          #{press => maps:get(press, AccIn) ++ [Pr],
-          temp => maps:get(temp, AccIn) ++ [Tmp],
-          time => maps:get(time, AccIn) ++ [T]}
-  end,
-
-  M = lists:foldl(FoldFun, State3, lists:seq(1, SampleCount)),
-
-  % Do computation here or on aws server?
-  %
-  % T1Computation = erlang:monotonic_time(millisecond),
-  %
-  % [Pressures, Temperatures, Epochs] = maps:values(M),
-  % Result = #{measures => lists:zip3(Epochs, Pressures, Temperatures),
-  %     pmean => 'Elixir.Numerix.Statistics':mean(Pressures),
-  %     pvar => 'Elixir.Numerix.Statistics':variance(Pressures),
-  %     tmean => 'Elixir.Numerix.Statistics':mean(Temperatures),
-  %     tvar => 'Elixir.Numerix.Statistics':variance(Temperatures),
-  %     cov => 'Elixir.Numerix.Statistics':covariance(Pressures, Temperatures)},
-  %
-  % T2Computation = erlang:monotonic_time(millisecond),
-
-  AWS_Server = maps:get(main_aws_server, node_config:get(remote_hosts)),
-
-  % Round trip time and computation time
-  {ok, {RTT, CT}} = rpc:call(AWS_Server, node_client, receive_meteo_data, [{node(), maps:values(M)}]).
-
-
-% ==> "Flood" raw data to the AWS server. The server will do the computation, aggregation and replication with Lasp on cloud.
-% TODO: untested
-meteorological_statistics_xcloudlasp(SampleCount, SampleInterval) ->
-
-  logger:log(notice, "Starting Meteo statistics task benchmarking for non aggregated data on lasp on cloud"),
-
-  % Must check if module is available
-  {pmod_nav, Pid, _Ref} = node_util:get_nav(),
-  % meteo = shell:rd(meteo, {press = [], temp = []}),
-  % State = #{press => [], temp => [], time => []},
-  State = maps:new(),
-  State1 = maps:put(press, [], State),
-  State2 = maps:put(temp, [], State1),
-  State3 = maps:put(time, [], State2),
-
-  AWS_Server = maps:get(main_aws_server, node_config:get(remote_hosts)),
-  FoldFun = fun
-      (Elem, _Map) when is_integer(Elem)->
-          timer:sleep(SampleInterval),
-          T = node_stream_worker:maybe_get_time(),
-          % T = calendar:local_time(),
-          [Pr, Tmp] = gen_server:call(Pid, {read, alt, [press_out, temp_out], #{}}),
-          % [Pr, Tmp] = [1000.234, 29.55555],
-          NewValues = #{press => Pr, temp => Tmp, time => T},
-          {ok, Result} = rpc:call(AWS_Server, node_client, receive_meteo_data, [{node(), NewValues, SampleCount}])
-  end,
-
-  M = lists:foldl(FoldFun, State3, lists:seq(1, SampleCount)).
-
-  %TODO: Wait for benchmark results from the remote server

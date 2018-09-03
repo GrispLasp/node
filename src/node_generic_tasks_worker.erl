@@ -271,7 +271,7 @@ start_all_tasks_periodically(RunningTasks, FinishedTasks) ->
   TasksList = node_generic_tasks_server:get_all_tasks(),
   logger:log(info, "=== Tasks list ~p ===~n", [TasksList]),
   FilteredTaskList = filter_task_list(TasksList, RunningTasks),
-  case lists:length(FilteredTaskList) of
+  case length(FilteredTaskList) of
     0 ->
       {ko, no_tasks_to_run};
     _ ->
