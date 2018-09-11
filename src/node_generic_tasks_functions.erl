@@ -277,7 +277,7 @@ sonar_sensor(Mode, NodeTarget) ->
 
 
 
-all_sensor_data(Index) ->
+all_sensor_data(Index, Nav, Als) ->
     {pmod_nav, Nav, _} = node_util:get_nav(),
     {pmod_als, Als, _} = node_util:get_als(),
     [RawPress, RawTemp] = gen_server:call(Nav, {read, alt, [press_out, temp_out], #{}}),
@@ -288,8 +288,8 @@ all_sensor_data(Index) ->
     Raw = gen_server:call(Als, raw),
     {_,{H,Mi,_}} = calendar:local_time(),
     {ok, {_, _, _, _}} = lasp:update(node_util:atom_to_lasp_identifier(node(),state_gset), {add, [Index, H*60 + Mi,Raw,Press,Temp,Mag,Gyro]}, self()),
-    timer:sleep(2500),
-    all_sensor_data(Index+1).
+    timer:sleep(5000),
+    all_sensor_data(Index+1,Nav,Als).
 
 verify(Type, Val, Nav) ->
     case Type of

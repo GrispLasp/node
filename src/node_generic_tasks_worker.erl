@@ -50,7 +50,7 @@ stop() ->
 init({}) ->
     logger:log(notice, "Initializing Node Server~n"),
     RestartInterval = node_config:get(generic_tasks_restart_interval, ?MIN),
-    % erlang:send_after(5000, self(), {start_all_tasks}),
+    erlang:send_after(5000, self(), {start_all_tasks}),
     % {ok, #state{}}.
     {ok, #state{running_tasks=[], finished_tasks=[], restart_interval = RestartInterval}}.
 

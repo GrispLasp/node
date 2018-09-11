@@ -149,6 +149,43 @@ maps_merge(Fun, Map1, Map2) ->
                    maps_update(K, fun (V2) -> Fun(K, V1, V2) end, V1, Map)
                end, Map2, Map1).
 
+
+remotes() ->
+  Node = node(),
+  Remotes = ?BOARDS((?DAN)) -- [Node],
+  Remotes2 = Remotes ++ ['ws@GrispAdhoc'],
+  Reached = lists:foreach (fun
+      (Elem) ->
+          net_adm:ping(Elem)
+  end, Remotes2).
+
+task() ->
+  Node = node(),
+  Remotes = ?BOARDS((?DAN)),
+  Reached = lists:foreach (fun
+      (Elem) ->
+          % net_adm:ping(Elem)
+          Remote = rpc:call(Elem, node_generic_tasks_worker, start_task, [taskdata])
+  end, Remotes).
+
+remotes2() ->
+  Node = node(),
+  Remotes = ?BOARDS((?DAN)) -- [Node],
+  Remotes2 = Remotes ++ ['ws@GrispAdhoc'],
+  M = lasp_peer_service:manager(),
+  Reached = lists:foreach(fun
+      (Elem) ->
+          case net_adm:ping(Elem) of
+              pong ->
+                  Remote = rpc:call(Elem, M, myself, []),
+                  % Remote = lasp_peer_service:join(rpc:call(node@my_grisp_board_2, partisan_hyparview_peer_service_manager, myself, [])).
+                  ok = lasp_peer_service:join(Remote),
+                  [Remote];
+              pang ->
+                  [error, Elem]
+          end
+  end, Remotes2).
+
 %% @doc Returns actual time and date if available from the webserver, or the local node time and date.
 %%
 %%      The GRiSP local time is always 1-Jan-1988::00:00:00
