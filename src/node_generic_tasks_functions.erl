@@ -278,8 +278,8 @@ sonar_sensor(Mode, NodeTarget) ->
 
 
 all_sensor_data(Index, Nav, Als) ->
-    {pmod_nav, Nav, _} = node_util:get_nav(),
-    {pmod_als, Als, _} = node_util:get_als(),
+    % {pmod_nav, Nav, _} = node_util:get_nav(),
+    % {pmod_als, Als, _} = node_util:get_als(),
     [RawPress, RawTemp] = gen_server:call(Nav, {read, alt, [press_out, temp_out], #{}}),
     Press = verify(pressure, RawPress, Nav),
     Temp = verify(temp, RawTemp, Nav),
@@ -290,6 +290,23 @@ all_sensor_data(Index, Nav, Als) ->
     {ok, {_, _, _, _}} = lasp:update(node_util:atom_to_lasp_identifier(node(),state_gset), {add, [Index, H*60 + Mi,Raw,Press,Temp,Mag,Gyro]}, self()),
     timer:sleep(5000),
     all_sensor_data(Index+1,Nav,Als).
+
+cave_data(Index) ->
+    {pmod_nav, Nav, _} = node_util:get_nav(),
+    {pmod_als, Als, _} = node_util:get_als(),
+    cave_data(Index,Nav,Als).
+
+cave_data(Index, Nav, Als) ->
+    [RawPress, RawTemp] = gen_server:call(Nav, {read, alt, [press_out, temp_out], #{}}),
+    Press = verify(pressure, RawPress, Nav),
+    Temp = verify(temp, RawTemp, Nav),
+    Mag = gen_server:call(Nav, {read, mag, [out_x_m, out_y_m, out_z_m], #{}}),
+    Gyro = gen_server:call(Nav, {read, acc, [out_x_g, out_y_g, out_z_g], #{}}),
+    Raw = gen_server:call(Als, raw),
+    {_,{H,Mi,_}} = calendar:local_time(),
+    {ok, {_, _, _, _}} = lasp:update(node_util:atom_to_lasp_identifier(node(),state_gset), {add, [Index, H*60 + Mi,Raw,Press,Temp,Mag,Gyro]}, self()),
+    timer:sleep(5000),
+    cave_data(Index+1,Nav,Als).
 
 verify(Type, Val, Nav) ->
     case Type of

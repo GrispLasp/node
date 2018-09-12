@@ -117,8 +117,10 @@ ping() ->
 						logger:log(info, "=== Node ~p is a webserver", [Node]),
 						Acc ++ [Node];
 					true ->
-						logger:log(info, "=== Attempting to join the node ~p with lasp", [Node]),
-						lasp_peer_service:join(Node),
+						% logger:log(info, "=== Attempting to join the node ~p with lasp", [Node]),
+						% lasp_peer_service:join(Node),
+						logger:log(info, "=== Not Attempting to join the node ~p with lasp", [Node]),
+						% lasp_peer_service:join(Node),
 						Acc ++ [Node]
 					end;
 				pang ->

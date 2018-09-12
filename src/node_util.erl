@@ -223,3 +223,34 @@ maybe_get_time({badrpc, Reason}) ->
 
 maybe_get_time(local) ->
 	calendar:local_time().
+
+form_squadron() ->
+    Remotes = node() ++ nodes(),
+    _Reached = lists:foreach(fun
+        (Elem) ->
+            ?PAUSE3,
+            case net_adm:ping(Elem) of
+                pong ->
+                    L = rpc:call(Elem, ?MODULE, remotes2, []),
+                    {ok, L};
+                pang ->
+                    [error, Elem]
+            end
+    end, Remotes),
+    ok.
+
+cavetask() ->
+    node_generic_tasks_server:add_task({cavetask, all, fun () -> node_generic_tasks_functions:cave_data(0) end }).
+
+caverun() ->
+    {ok, L} = lasp_peer_service:members(),
+    _Reached = lists:foreach(fun
+    (Elem) ->
+        case net_adm:ping(Elem) of
+            pong ->
+                rpc:call(Elem, node_generic_tasks_worker, start_task, [cavetask]);
+            pang ->
+                [error, Elem]
+            end
+        end, L),
+        ok.
