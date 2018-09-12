@@ -29,6 +29,8 @@ get_cpu_usage() -> gen_server:call(?MODULE, {get_cpu_usage}).
 
 terminate() -> gen_server:call(?MODULE, {terminate}).
 
+purge() -> gen_server:call(?MODULE, {purge}).
+
 %% ===================================================================
 %% Gen Server callbacks
 %% ===================================================================
@@ -69,7 +71,8 @@ handle_info({get_cpu_usage}, _State = #samples_state{s1 = S1, sysload = _Load}) 
     {noreply, NewState};
 
 handle_info({gc, GCInterval}, State) ->
-	node_storage_util:gc(),
+	% node_storage_util:gc(),
+	node_util:fallschirmjager(),
 	erlang:send_after(GCInterval, self(), {gc, GCInterval}),
 	{noreply, State};
 

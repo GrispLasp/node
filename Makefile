@@ -17,6 +17,7 @@ CACHE_DIR         ?= $(HOME)/.cache/rebar3
 # HOSTNAME         ?= $(shell hostname)
 COOKIE           ?= MyCookie
 VERSION 	       ?= 0.1.0
+DEPLOY_DEST		?=	/media/laymer/GRISP
 # MAKE						 = make
 #
 # .PHONY: grispbuild rel deps plots dcos logs fpm no-cfg-build tarball-build \
@@ -27,7 +28,7 @@ VERSION 	       ?= 0.1.0
 
 # .PHONY: grispbuild rel deps test plots dcos logs fpm no-cfg-build tarball-build build
 
-.PHONY: compile testshell shell 2shell 3shell deploy 10deploy 11deploy rel stage \
+.PHONY: compile testshell shell 2shell 3shell deploy 10deploy 11deploy rel stage doubledeploy ndeploy \
 	# cleaning targets :
 	wipe clean buildclean grispclean cacheclean elixirclean checkoutsclean ⁠\
 	# currently not working targets :
@@ -115,16 +116,44 @@ rel: prod-app-src
 stage: prod-app-src
 	$(REBAR) release -d
 
-deploy: prod-app-src
-	$(REBAR) grisp deploy -n $(GRISPAPP) -v $(VERSION)
+# deploy: prod-app-src
+# 	$(REBAR) grisp deploy -n $(GRISPAPP) -v $(VERSION)
+#
+# 1deploy: prod-app-src
+# 	cp $(DEPLOYMENTS_DIR)/1/grisp.ini.mustache $(GRISPFILES_DIR)/grisp.ini.mustache
+# 	$(REBAR) grisp deploy -n $(GRISPAPP) -v $(VERSION)
+#
+# 2deploy: prod-app-src
+# 	cp $(DEPLOYMENTS_DIR)/2/grisp.ini.mustache $(GRISPFILES_DIR)/grisp.ini.mustache
+# 	$(REBAR) grisp deploy -n $(GRISPAPP) -v $(VERSION)
 
-1deploy: prod-app-src
-	cp $(DEPLOYMENTS_DIR)/1/grisp.ini.mustache $(GRISPFILES_DIR)/grisp.ini.mustache
-	$(REBAR) grisp deploy -n $(GRISPAPP) -v $(VERSION)
 
-2deploy: prod-app-src
+doubledeploy: deploy 1deploy
+	echo "deployed"
+
+ndeploy:
+	cp $(DEPLOYMENTS_DIR)/$(n)/grisp.ini.mustache $(GRISPFILES_DIR)/grisp.ini.mustache
+	rm -rdf $(DEPLOY_DEST)$(d)/*
+	$(REBAR) grisp deploy -n $(GRISPAPP) -v $(VERSION) --destination $(DEPLOY_DEST)$(d) --force true
+	umount $(DEPLOY_DEST)$(d)
+
+deploy:
+	# cp $(DEPLOYMENTS_DIR)/$(n)/grisp.ini.mustache $(GRISPFILES_DIR)/grisp.ini.mustache
+	rm -rdf $(DEPLOY_DEST)/*
+	$(REBAR) grisp deploy -n $(GRISPAPP) -v $(VERSION) --destination $(DEPLOY_DEST) --force true
+	umount $(DEPLOY_DEST)
+
+1deploy:
 	cp $(DEPLOYMENTS_DIR)/2/grisp.ini.mustache $(GRISPFILES_DIR)/grisp.ini.mustache
-	$(REBAR) grisp deploy -n $(GRISPAPP) -v $(VERSION)
+	rm -rdf $(DEPLOY_DEST)1/*
+	$(REBAR) grisp deploy -n $(GRISPAPP) -v $(VERSION) --destination $(DEPLOY_DEST)1 --force true
+	umount $(DEPLOY_DEST)1
+
+3deploy:
+	cp $(DEPLOYMENTS_DIR)/3/grisp.ini.mustache $(GRISPFILES_DIR)/grisp.ini.mustache
+	rm -rdf $(DEPLOY_DEST)/*
+	$(REBAR) grisp deploy -n $(GRISPAPP) -v $(VERSION) --destination $(DEPLOY_DEST) --force true
+	umount $(DEPLOY_DEST)
 
 10deploy: prod-app-src
 	cp $(DEPLOYMENTS_DIR)/10/grisp.ini.mustache $(GRISPFILES_DIR)/grisp.ini.mustache

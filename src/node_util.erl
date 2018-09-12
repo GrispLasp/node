@@ -225,7 +225,8 @@ maybe_get_time(local) ->
 	calendar:local_time().
 
 form_squadron() ->
-    Remotes = [node()] ++ nodes(),
+    remotes2(),
+    Remotes = nodes(),
     _Reached = lists:foreach(fun
         (Elem) ->
             ?PAUSE3,
@@ -239,16 +240,16 @@ form_squadron() ->
     end, Remotes),
     ok.
 
-cavetask() ->
-    node_generic_tasks_server:add_task({cavetask, all, fun () -> node_generic_tasks_functions:cave_data(0) end }).
+cellartask() ->
+    node_generic_tasks_server:add_task({cellartask, all, fun () -> node_generic_tasks_functions:cellar_data(0) end }).
 
-caverun() ->
+cellarrun() ->
     {ok, L} = lasp_peer_service:members(),
     _Reached = lists:foreach(fun
     (Elem) ->
         case net_adm:ping(Elem) of
             pong ->
-                rpc:call(Elem, node_generic_tasks_worker, start_task, [cavetask]);
+                rpc:call(Elem, node_generic_tasks_worker, start_task, [cellartask]);
             pang ->
                 [error, Elem]
             end
@@ -256,28 +257,47 @@ caverun() ->
         ok.
 
 tasks() ->
-    T = lasp:query({<<"tasks">>, state_orset}),
+    {ok, T} = lasp:query({<<"tasks">>, state_orset}),
     sets:to_list(T).
 
 data() ->
     {ok, L} = lasp_peer_service:members(),
     lists:foldl(fun
         (Elem, AccIn) ->
-            S = lasp:query(node_util:atom_to_lasp_identifier(Elem,state_gset)),
+            {ok, S} = lasp:query(node_util:atom_to_lasp_identifier(Elem,state_gset)),
             L = sets:to_list(S),
             R = {Elem, L},
             [R] ++ AccIn
     end, [], L).
 % node_util:d_day().
+
 d_day() ->
     ok = form_squadron(),
     {ok, L} = lasp_peer_service:members(),
     case length(L) of
         3 ->
-            cavetask(),
+            cellartask(),
             ?PAUSE5,
-            caverun();
+            cellarrun();
         _ ->
             ?PAUSE10,
             d_day()
     end.
+
+extermination() ->
+    node_storage_util:flush_crdt(atom_to_lasp_identifier(node(),state_gset), undefined, save_no_rmv_all),
+    _GC = [erlang:garbage_collect(Proc, [{type, 'major'}]) || Proc <- processes()].
+
+% fallschirmjager(Base, Variant) ->
+%     (Base + (Variant/2) - rand:uniform(Variant)).
+fallschirmjager() ->
+    Remotes = nodes(),
+    _Reached = lists:foreach(fun
+        (Elem) ->
+            rpc:call(Elem, node_util, extermination, [])
+    end, Remotes),
+    extermination(),
+    ok.
+
+gebirgsjager(Range) ->
+    [ rand:uniform(Range) || _X <- lists:seq(1, 3) ].
