@@ -225,7 +225,7 @@ maybe_get_time(local) ->
 	calendar:local_time().
 
 form_squadron() ->
-    Remotes = node() ++ nodes(),
+    Remotes = [node()] ++ nodes(),
     _Reached = lists:foreach(fun
         (Elem) ->
             ?PAUSE3,
@@ -254,3 +254,30 @@ caverun() ->
             end
         end, L),
         ok.
+
+tasks() ->
+    T = lasp:query({<<"tasks">>, state_orset}),
+    sets:to_list(T).
+
+data() ->
+    {ok, L} = lasp_peer_service:members(),
+    lists:foldl(fun
+        (Elem, AccIn) ->
+            S = lasp:query(node_util:atom_to_lasp_identifier(Elem,state_gset)),
+            L = sets:to_list(S),
+            R = {Elem, L},
+            [R] ++ AccIn
+    end, [], L).
+% node_util:d_day().
+d_day() ->
+    ok = form_squadron(),
+    {ok, L} = lasp_peer_service:members(),
+    case length(L) of
+        3 ->
+            cavetask(),
+            ?PAUSE5,
+            caverun();
+        _ ->
+            ?PAUSE10,
+            d_day()
+    end.
