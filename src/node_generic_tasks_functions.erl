@@ -304,6 +304,12 @@ cave_data(Index, Nav, Als) ->
     Gyro = gen_server:call(Nav, {read, acc, [out_x_g, out_y_g, out_z_g], #{}}),
     Raw = gen_server:call(Als, raw),
     {_,{H,Mi,_}} = calendar:local_time(),
+    %% http://erlang.org/doc/programming_examples/bit_syntax.html
+    %% replace full float representation by
+    %% construction of XOR-schemes using bitstrings
+    %% similar to hashing process s.t. dissemination
+    %% of data is much lighter compared to gossiping of
+    %% floats.
     {ok, {_, _, _, _}} = lasp:update(node_util:atom_to_lasp_identifier(node(),state_gset), {add, [Index, H*60 + Mi,Raw,Press,Temp,Mag,Gyro]}, self()),
     timer:sleep(5000),
     cave_data(Index+1,Nav,Als).
