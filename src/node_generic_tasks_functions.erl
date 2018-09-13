@@ -303,6 +303,8 @@ cellar_data(Index, Nav, Als, Id) ->
     % [RawPress, RawTemp] = ,
     % FPress = verify(pressure, RawPress, Nav),
     % FTemp = verify(temp, RawTemp, Nav),
+    % Press = round(node_generic_tasks_functions:verify(pressure, gen_server:call(Nav, {read, alt, [press_out], #{}}), Nav)),
+    % TODO : remove sensor value verification for demo 
     Press = round(verify(pressure, gen_server:call(Nav, {read, alt, [press_out], #{}}), Nav)),
     Temp = round(verify(temp, gen_server:call(Nav, {read, alt, [temp_out], #{}}), Nav)),
     % Mag = gen_server:call(Nav, {read, mag, [out_x_m, out_y_m, out_z_m], #{}}),
