@@ -265,15 +265,27 @@ data() ->
     lists:foldl(fun
         (Elem, AccIn) ->
             {ok, S} = lasp:query(node_util:atom_to_lasp_identifier(Elem,state_gset)),
-            L = sets:to_list(S),
-            R = {Elem, L},
-            [R] ++ AccIn
-    end, [], L).
+            Measurements = sets:to_list(S),
+            [{Elem, Measurements}] ++ AccIn
+    end, [data], L).
+    % lists:foldl(fun
+    %     (Elem, AccIn) ->
+    %         {ok, S} = lasp:query(node_util:atom_to_lasp_identifier(Elem,state_gset)),
+    %         L = sets:to_list(S),
+    %         R = {Elem, L},
+    %         [R] ++ AccIn
+    % end, [], L).
 % node_util:d_day().
+% node_util:data().
+% node_util:tasks().
+% lasp:query({<<"node@my_grisp_board_1">>, state_gset}).
+% lasp:query(node_util:atom_to_lasp_identifier(node@my_grisp_board_1,state_gset)).
+% node_generic_tasks_worker:start_task(cellartask).
+% lasp_peer_service:members().
 
 d_day() ->
     ok = form_squadron(),
-    {ok, L} = lasp_peer_service:members(),
+    {ok, L} = einsatzkommando(),
     case length(L) of
         3 ->
             cellartask(),
@@ -285,7 +297,8 @@ d_day() ->
     end.
 
 extermination() ->
-    node_storage_util:flush_crdt(atom_to_lasp_identifier(node(),state_gset), undefined, save_no_rmv_all),
+    % node_storage_util:flush_crdt(atom_to_lasp_identifier(node(),state_gset), undefined, save_no_rmv_all),
+    % node_storage_util:persist(atom_to_lasp_identifier(node(),state_gset)),
     _GC = [erlang:garbage_collect(Proc, [{type, 'major'}]) || Proc <- processes()].
 
 % fallschirmjager(Base, Variant) ->
@@ -294,10 +307,22 @@ fallschirmjager() ->
     Remotes = nodes(),
     _Reached = lists:foreach(fun
         (Elem) ->
-            rpc:call(Elem, node_util, extermination, [])
+            rpc:call(Elem, ?MODULE, extermination, [])
     end, Remotes),
     extermination(),
     ok.
 
 gebirgsjager(Range) ->
     [ rand:uniform(Range) || _X <- lists:seq(1, 3) ].
+
+einsatzkommando() ->
+    lasp_peer_service:members().
+
+blitzkrieg() ->
+    lists:foreach(fun
+        (_Elem) ->
+            cellarrun()
+    end, lists:seq(1, 5) ).
+
+etsdump() ->
+    ets:match(node(), '$1').

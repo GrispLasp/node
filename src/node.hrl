@@ -24,6 +24,7 @@ end).
 %%====================================================================
 
 -define(MS,             20).
+-define(HMS,           100).
 -define(ONE,          1000).
 -define(THREE,        3000).
 -define(FIVE,         5000).
@@ -40,6 +41,7 @@ end).
 -define(SLEEP(Interval),        timer:sleep((round(Interval/?TIME_MULTIPLIER)))).
 
 -define(PAUSEMS,                     ?SLEEP(?MS)).
+-define(PAUSEHMS,                   ?SLEEP(?HMS)).
 -define(PAUSE1,                     ?SLEEP(?ONE)).
 -define(PAUSE3,                   ?SLEEP(?THREE)).
 -define(PAUSE5,                    ?SLEEP(?FIVE)).

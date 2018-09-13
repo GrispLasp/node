@@ -107,6 +107,33 @@ flush_crdt(Id, _FilenameOld, Mode) ->
         _ -> {error, unknown_mode}
     end.
 
+persist(Id) ->
+    % TODO : target only sensitive processes for GC
+    TableName = node_util:lasp_id_to_atom(Id),
+    TableStr = atom_to_list(TableName),
+    Suffix = atom_to_list(temp),
+    TN = list_to_atom(unicode:characters_to_list([TableStr, "_", Suffix], utf8)),
+    % TODO : check if table is empty
+      Tmp = ets:new(TN, [ordered_set, named_table, public]),
+      case ets:insert_new(Tmp, ets:take(node(), Id)) of
+          true ->
+              {ok, Name} = get_filename(Id),
+              % case ets:tab2file(Tmp, Filename, [{sync, true}]) of
+              case ets:tab2file(Tmp, Name, [{sync, true}]) of
+                ok ->
+                  logger:log(info, "Saved CRDT ~p to file ~p ~n", [Id, Name]),
+                  true = ets:delete(Tmp),
+                  true = ets:delete(node(), Id),
+                  {ok, Id, Name};
+                {error, Reason} ->
+                  lager:error("Could not save ~p to SD card ~n", [Id]),
+                  {error, Reason}
+              end;
+          false ->
+            lager:error("Could not insert ~p values in tmp table ~n", [Id]),
+            {error, insert}
+      end.
+
 % save_crdt(Id, Filename) ->
 %   Tmp = ets:new(Filename, [ordered_set, named_table, public]),
 %   Var = ets:lookup(node(),Id),

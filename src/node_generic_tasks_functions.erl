@@ -294,16 +294,21 @@ all_sensor_data(Index, Nav, Als) ->
 cellar_data(Index) ->
     {pmod_nav, Nav, _} = node_util:get_nav(),
     {pmod_als, Als, _} = node_util:get_als(),
-    cellar_data(Index,Nav,Als).
+    Id = node_util:atom_to_lasp_identifier(node(),state_gset),
+    lasp:declare(Id, state_gset),
+    cellar_data(Index,Nav,Als,Id).
 
-cellar_data(Index, Nav, Als) ->
-    [RawPress, RawTemp] = gen_server:call(Nav, {read, alt, [press_out, temp_out], #{}}),
-    Press = verify(pressure, RawPress, Nav),
-    Temp = verify(temp, RawTemp, Nav),
+cellar_data(Index, Nav, Als, Id) ->
+    % [RawPress, RawTemp] = gen_server:call(Nav, {read, alt, [press_out, temp_out], #{}}),
+    % [RawPress, RawTemp] = ,
+    % FPress = verify(pressure, RawPress, Nav),
+    % FTemp = verify(temp, RawTemp, Nav),
+    Press = round(verify(pressure, gen_server:call(Nav, {read, alt, [press_out], #{}}), Nav)),
+    Temp = round(verify(temp, gen_server:call(Nav, {read, alt, [temp_out], #{}}), Nav)),
     % Mag = gen_server:call(Nav, {read, mag, [out_x_m, out_y_m, out_z_m], #{}}),
     % Gyro = gen_server:call(Nav, {read, acc, [out_x_g, out_y_g, out_z_g], #{}}),
     Mag = node_util:gebirgsjager(10),
-    Gyro = node_util:gebirgsjager(30),
+    Gyro = node_util:gebirgsjager(15),
     Raw = gen_server:call(Als, raw),
     {_,{H,Mi,_}} = calendar:local_time(),
     %% http://erlang.org/doc/programming_examples/bit_syntax.html
@@ -312,9 +317,9 @@ cellar_data(Index, Nav, Als) ->
     %% similar to hashing process s.t. dissemination
     %% of data is much lighter compared to gossiping of
     %% floats.
-    {ok, {_, _, _, _}} = lasp:update(node_util:atom_to_lasp_identifier(node(),state_gset), {add, [Index, H*60 + Mi,Raw,Press,Temp,Mag,Gyro]}, self()),
-    timer:sleep(5000),
-    cellar_data(Index+1,Nav,Als).
+    {ok, {_, _, _, _}} = lasp:update(Id, {add, [Index, H*60 + Mi,Raw,Press,Temp,Mag,Gyro]}, self()),
+    timer:sleep(3000),
+    cellar_data(Index+1,Nav,Als,Id).
 
 verify(Type, Val, Nav) ->
     case Type of
@@ -345,3 +350,10 @@ verify3axis(Type, [X,Y,Z], Nav) ->
         % NewGyro = (1000 - rand:uniform(5000)),
         verify3axis(gyro, NewGyro, Nav)
     end.
+% lasp:declare(node_util:atom_to_lasp_identifier(node(),state_gset),state_gset).
+% lasp:update(node_util:atom_to_lasp_identifier(node(),state_gset), {add, "stuff"}, self()).
+% node_storage_util:flush_crdt(node_util:atom_to_lasp_identifier(node(),state_gset),undef,save_no_rmv_all).
+% node_storage_util:persist(node_util:atom_to_lasp_identifier(node(),state_gset)).
+% ets:match(node(), '$1').
+% ets:delete(node(), node_util:atom_to_lasp_identifier(node(),state_gset)).
+% lasp:query(node_util:atom_to_lasp_identifier(node(),state_gset)).

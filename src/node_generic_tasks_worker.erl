@@ -222,7 +222,8 @@ can_run_task(RunningTasksCount) ->
 	logger:log(notice, "=== Device is ~p ===~n",[DeviceType]),
 	TresholdReached = case DeviceType of
 		"grisp" ->
-			if RunningTasksCount =< 2 -> false;
+			% if RunningTasksCount =< 2 -> false;
+			if RunningTasksCount =< 5 -> false;
 				true -> true
 			end;
 		"laptop" ->
@@ -231,7 +232,7 @@ can_run_task(RunningTasksCount) ->
 			end
 	end,
 	logger:log(info, "=== Is threshold reached? ~p ===~n",[TresholdReached]),
-	CanRun = if CpuLoad < 50, TresholdReached =:= false -> true;
+	CanRun = if CpuLoad < 70, TresholdReached =:= false -> true;
 		true -> false
 	end,
 	CanRun.
