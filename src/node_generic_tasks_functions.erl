@@ -318,6 +318,7 @@ cellar_data(Index, Nav, Als, Id) ->
     %% of data is much lighter compared to gossiping of
     %% floats.
     {ok, {_, _, _, _}} = lasp:update(Id, {add, [Index, H*60 + Mi,Raw,Press,Temp,Mag,Gyro]}, self()),
+    % {ok, {_, _, _, _}} = lasp:update({<<"node@my_grisp_board_1">>,state_gset}, {add, [1, 1*60 + 2,12,1000,20,[1,2,3],[3,4,5]]}, self()).
     timer:sleep(3000),
     cellar_data(Index+1,Nav,Als,Id).
 

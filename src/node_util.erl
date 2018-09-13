@@ -282,7 +282,7 @@ data() ->
 % lasp:query(node_util:atom_to_lasp_identifier(node@my_grisp_board_1,state_gset)).
 % node_generic_tasks_worker:start_task(cellartask).
 % lasp_peer_service:members().
-
+% {ok, {_, _, _, _}} = lasp:update({<<"node@my_grisp_board_1">>,state_gset}, {add, [1, 1*60 + 2,12,1000,20,[1,2,3],[3,4,5]]}, self()).
 d_day() ->
     ok = form_squadron(),
     {ok, L} = einsatzkommando(),
@@ -321,6 +321,7 @@ einsatzkommando() ->
 blitzkrieg() ->
     lists:foreach(fun
         (_Elem) ->
+            ?PAUSE1,
             cellarrun()
     end, lists:seq(1, 5) ).
 

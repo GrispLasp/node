@@ -436,6 +436,7 @@ mem() ->
 % node_storage_util:load_crdt(tempfile).
 % lasp:query({<<"temp">>, state_orset}).
 % lasp:query({<<"states">>, state_orset}).
+% lasp:query({<<"node@my_grisp_board_1">>, state_gset}).
 
 % node_storage_util:run_lasp().
 % node_storage_util:get_test().
